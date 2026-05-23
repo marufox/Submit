@@ -76,7 +76,7 @@ def load_db():
                     "ig_2fa": {},
                     "fb_0fd_2fa": {}
                 },
-                "global_unique_keys": set()
+                "global_unique_keys": []
             }
             with open(DB_FILE, "w") as f:
                 json.dump(default, f, indent=4)
@@ -84,24 +84,15 @@ def load_db():
         with open(DB_FILE, "r") as f:
             data = json.load(f)
             if "global_unique_keys" not in data:
-                data["global_unique_keys"] = set()
-            elif isinstance(data["global_unique_keys"], list):
-                data["global_unique_keys"] = set(data["global_unique_keys"])
+                data["global_unique_keys"] = []
             return data
 
 def save_db(data):
     with db_lock:
-        data_copy = data.copy()
-        if "global_unique_keys" in data_copy:
-            data_copy["global_unique_keys"] = list(data_copy["global_unique_keys"])
-        
         temp_file = DB_FILE + ".tmp"
         with open(temp_file, "w") as f:
-            json.dump(data_copy, f, indent=4)
+            json.dump(data, f, indent=4)
         os.replace(temp_file, DB_FILE)
-        
-        if "global_unique_keys" in data:
-            data["global_unique_keys"] = set(data["global_unique_keys"])
 
 # ================= 🔐 [ 3. FILE PROCESSING ] =================
 
@@ -212,8 +203,7 @@ def process_file_worker(bot, chat_id, file_type, file_path, original_name, payme
                 "• user / User / USER\n"
                 "• pass / Pass / PASS\n"
                 "• 2fa / 2Fa / 2FA (optional)\n\n"
-                "✅ Any case variation will work!\n\n"
-                "📌 Example: 'user', 'User', 'USER' all are accepted.",
+                "✅ Any case variation will work!",
                 parse_mode="Markdown"
             )
             return False
@@ -226,18 +216,13 @@ def process_file_worker(bot, chat_id, file_type, file_path, original_name, payme
                 bot.send_document(
                     chat_id, 
                     dup_file, 
-                    caption=f"⚠️ *DUPLICATE FILE!*\n\n📁 File: `{original_name}`\n❌ This exact file was already submitted.\n\n📅 Previously submitted on: `{file_db[file_hash].get('timestamp', 'Unknown')}`",
+                    caption=f"⚠️ *DUPLICATE FILE!*\n\n📁 File: `{original_name}`\n❌ This exact file was already submitted.",
                     parse_mode="Markdown"
                 )
-            
-            dup_save_path = os.path.join("duplicate_files", f"{int(time.time())}_{original_name}")
-            with open(file_path, "rb") as src, open(dup_save_path, "wb") as dst:
-                dst.write(src.read())
-            
             os.remove(file_path)
             return False
         
-        # ========== CHECK DUPLICATE DATA INSIDE FILE (3 columns: user+pass+2fa) ==========
+        # ========== CHECK DUPLICATE DATA (3 columns: user+pass+2fa) ==========
         unique_rows = []
         duplicate_rows = []
         seen_keys = set()
@@ -250,10 +235,8 @@ def process_file_worker(bot, chat_id, file_type, file_path, original_name, payme
                 seen_keys.add(row_key)
                 unique_rows.append(row)
         
-        # ========== CHECK GLOBAL DUPLICATES (3 columns: user+pass+2fa) ==========
-        global_unique_keys = db.get("global_unique_keys", set())
-        if isinstance(global_unique_keys, list):
-            global_unique_keys = set(global_unique_keys)
+        # ========== CHECK GLOBAL DUPLICATES ==========
+        global_unique_keys = set(db.get("global_unique_keys", []))
         
         truly_unique_rows = []
         global_duplicate_rows = []
@@ -266,7 +249,7 @@ def process_file_worker(bot, chat_id, file_type, file_path, original_name, payme
                 global_unique_keys.add(row_key)
                 truly_unique_rows.append(row)
         
-        db["global_unique_keys"] = global_unique_keys
+        db["global_unique_keys"] = list(global_unique_keys)
         
         # Send global duplicates back to user
         if global_duplicate_rows:
@@ -282,7 +265,7 @@ def process_file_worker(bot, chat_id, file_type, file_path, original_name, payme
                     bot.send_document(
                         chat_id,
                         f,
-                        caption=f"⚠️ *DUPLICATE DATA FOUND!*\n\n📁 File: `{original_name}`\n📊 {len(global_duplicate_rows)} rows already exist in database.\n\n✅ Only truly unique rows were saved."
+                        caption=f"⚠️ *DUPLICATE DATA FOUND!*\n\n📊 {len(global_duplicate_rows)} rows already exist in database."
                     )
                 os.remove(dup_file_path)
             except:
@@ -296,9 +279,7 @@ def process_file_worker(bot, chat_id, file_type, file_path, original_name, payme
             bot.send_message(
                 chat_id,
                 "❌ *NO UNIQUE DATA!*\n\n"
-                f"📁 File: `{original_name}`\n"
-                f"⚠️ All {len(unique_rows)} rows already exist in database.\n\n"
-                f"📊 {len(global_duplicate_rows)} duplicate rows found.",
+                f"⚠️ All rows already exist in database.",
                 parse_mode="Markdown"
             )
             return False
@@ -316,7 +297,7 @@ def process_file_worker(bot, chat_id, file_type, file_path, original_name, payme
                     bot.send_document(
                         chat_id,
                         f,
-                        caption=f"⚠️ *DUPLICATE ROWS IN YOUR FILE!*\n\n📁 File: `{original_name}`\n📊 {len(duplicate_rows)} duplicate rows found inside your file.\n\n✅ Only unique rows were processed further."
+                        caption=f"⚠️ *DUPLICATE ROWS IN YOUR FILE!*\n\n📊 {len(duplicate_rows)} duplicate rows found inside your file."
                     )
                 os.remove(dup_file_path)
             except:
@@ -332,9 +313,7 @@ def process_file_worker(bot, chat_id, file_type, file_path, original_name, payme
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "file_type": file_type,
             "total_rows_in_file": valid_rows,
-            "empty_rows": empty_rows,
-            "duplicate_rows_count": len(duplicate_rows),
-            "global_duplicate_count": len(global_duplicate_rows)
+            "empty_rows": empty_rows
         }
         
         file_db[file_hash] = file_info
@@ -355,17 +334,13 @@ def process_file_worker(bot, chat_id, file_type, file_path, original_name, payme
         
         save_db(db)
         
-        backup_path = os.path.join("backup", f"{file_type}_{file_hash}_{original_name}")
-        with open(file_path, "rb") as src, open(backup_path, "wb") as dst:
-            dst.write(src.read())
-        
         warning_msg = ""
         if empty_rows > 0:
             warning_msg = f"\n⚠️ {empty_rows} rows had no data!"
         if duplicate_rows:
-            warning_msg += f"\n⚠️ {len(duplicate_rows)} duplicate rows removed from your file!"
+            warning_msg += f"\n⚠️ {len(duplicate_rows)} duplicate rows removed!"
         if global_duplicate_rows:
-            warning_msg += f"\n⚠️ {len(global_duplicate_rows)} rows already existed in database!"
+            warning_msg += f"\n⚠️ {len(global_duplicate_rows)} rows already existed!"
         
         result_msg = (
             f"✅ *FILE PROCESSED!*\n\n"
@@ -379,20 +354,6 @@ def process_file_worker(bot, chat_id, file_type, file_path, original_name, payme
         )
         
         bot.send_message(chat_id, result_msg, parse_mode="Markdown")
-        
-        for admin_id in ADMIN_IDS:
-            try:
-                master_bot.send_message(
-                    admin_id, 
-                    f"📢 *NEW FILE RECEIVED!*\n"
-                    f"👤 {username}\n"
-                    f"📂 {file_type}\n"
-                    f"📊 {valid_rows} unique rows\n"
-                    f"💳 {payment_method} - {payment_number}",
-                    parse_mode="Markdown"
-                )
-            except:
-                pass
         
         return True
         
@@ -450,7 +411,7 @@ def start_user_bot(token):
                 f"   • pass / Pass / PASS\n"
                 f"   • 2fa / 2Fa / 2FA (optional)\n"
                 f"💳 *Payment:* bKash, Nagad, Rocket, Binance\n"
-                f"🔄 *Auto duplicate remove (file + global)*\n\n"
+                f"🔄 *Auto duplicate remove*\n\n"
                 f"📌 *Click below to start*",
                 parse_mode="Markdown",
                 reply_markup=kb
@@ -697,7 +658,7 @@ def m_broadcast(m):
     
     user_ids = load_user_ids()
     if not user_ids:
-        master_bot.send_message(m.chat.id, "❌ No users found! Users need to start the bot first.", parse_mode="Markdown")
+        master_bot.send_message(m.chat.id, "❌ No users found!", parse_mode="Markdown")
         return
     
     kb = types.InlineKeyboardMarkup(row_width=1)
@@ -800,7 +761,7 @@ def send_text_broadcast(m):
                 success += 1
                 sent = True
                 break
-            except Exception as e:
+            except:
                 continue
         if not sent:
             fail += 1
@@ -859,7 +820,7 @@ def send_media_broadcast(m):
                 success += 1
                 sent = True
                 break
-            except Exception as e:
+            except:
                 continue
         if not sent:
             fail += 1
@@ -915,14 +876,12 @@ def m_payment_list(m):
         master_bot.send_message(m.chat.id, "❌ No data found!", parse_mode="Markdown")
         return
     
-    # Group and sort by payment method (bKash, Nagad, Rocket, Binance)
+    # Group and sort by payment method
     payment_order = {"bKash": 1, "Nagad": 2, "Rocket": 3, "Binance": 4}
     submitter_data.sort(key=lambda x: (payment_order.get(x["payment"], 999), -x["total_rows"]))
     
-    # Create DataFrame
     df = pd.DataFrame(submitter_data)
     
-    # Save to file
     data_file = f"payment_list_{m.chat.id}.xlsx"
     try:
         df.to_excel(data_file, index=False)
@@ -930,13 +889,11 @@ def m_payment_list(m):
         data_file = f"payment_list_{m.chat.id}.csv"
         df.to_csv(data_file, index=False, encoding='utf-8-sig')
     
-    # Calculate totals
     total_submitters = len(submitter_data)
     total_files = sum(d["total_files"] for d in submitter_data)
     total_rows = sum(d["total_rows"] for d in submitter_data)
     total_ok = sum(d["ok"] for d in submitter_data)
     
-    # Count by payment method
     bkash_count = len([x for x in submitter_data if x["payment"] == "bKash"])
     nagad_count = len([x for x in submitter_data if x["payment"] == "Nagad"])
     rocket_count = len([x for x in submitter_data if x["payment"] == "Rocket"])
@@ -960,7 +917,7 @@ def m_payment_list(m):
         master_bot.send_document(
             m.chat.id, 
             f, 
-            caption=f"📊 PAYMENT LIST (Grouped by Payment Method)\n\nColumns: submitted_by, payment, number, total_files, total_rows, ok"
+            caption=f"📊 PAYMENT LIST\n\nColumns: submitted_by, payment, number, total_files, total_rows, ok"
         )
     
     os.remove(data_file)
@@ -1223,17 +1180,13 @@ def m_stats(m):
     
     db = load_db()
     total_files = 0
-    total_unique = 0
     
     for file_type, files in db["files"].items():
         total_files += len(files)
     
-    for file_type, unique_data in db["all_unique_data"].items():
-        total_unique += len(unique_data)
-    
     user_ids = load_user_ids()
     
-    global_unique_count = len(db.get("global_unique_keys", set()))
+    global_unique_count = len(db.get("global_unique_keys", []))
     
     stats_msg = (
         f"📊 *STATISTICS*\n\n"
@@ -1320,20 +1273,12 @@ def m_download_type_callback(c):
                         rows_with_2fa += 1
                     
                     writer.writerow([
-                        user_val if user_val else "",
-                        pass_val if pass_val else "",
-                        twofa_val if twofa_val else "",
+                        user_val,
+                        pass_val,
+                        twofa_val,
                         item.get("submitted_by", ""),
                         item.get("submitted_at", "")
                     ])
-            else:
-                writer.writerow([
-                    item.get("user", ""),
-                    item.get("pass", ""),
-                    item.get("2fa", ""),
-                    item.get("submitted_by", ""),
-                    item.get("submitted_at", "")
-                ])
     
     try:
         master_bot.delete_message(c.message.chat.id, status_msg.message_id)
@@ -1344,14 +1289,14 @@ def m_download_type_callback(c):
         master_bot.send_document(
             c.message.chat.id, 
             f, 
-            caption=f"📊 {display_type}\n📋 All user data\n\nColumns: user, pass, 2fa, submitted_by, submitted_at\n\nTotal rows: {total_rows}\nRows with 2FA: {rows_with_2fa}"
+            caption=f"📊 {display_type}\n\nTotal rows: {total_rows}\nRows with 2FA: {rows_with_2fa}"
         )
     
     os.remove(data_file)
     master_bot.answer_callback_query(c.id, f"{display_type} data sent!")
 
 
-# ================= ➕ [ 5.8 ADD/REMOVE BOT (More Options) ] =================
+# ================= ➕ [ 5.8 ADD/REMOVE BOT ] =================
 
 @master_bot.message_handler(func=lambda m: m.text == "➕ Add Bot")
 def m_add_bot(m):
@@ -1455,26 +1400,10 @@ def m_confirm_clear(c):
                 except:
                     pass
     
-    dup_folder = "duplicate_files"
-    if os.path.exists(dup_folder):
-        for f in os.listdir(dup_folder):
-            try:
-                os.remove(os.path.join(dup_folder, f))
-            except:
-                pass
-    
-    backup_folder = "backup"
-    if os.path.exists(backup_folder):
-        for f in os.listdir(backup_folder):
-            try:
-                os.remove(os.path.join(backup_folder, f))
-            except:
-                pass
-    
     db = load_db()
     db["files"] = {"ig_cookies": {}, "ig_2fa": {}, "fb_0fd_2fa": {}}
     db["all_unique_data"] = {"ig_cookies": {}, "ig_2fa": {}, "fb_0fd_2fa": {}}
-    db["global_unique_keys"] = set()
+    db["global_unique_keys"] = []
     save_db(db)
     
     global current_ok_data
