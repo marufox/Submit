@@ -11,8 +11,10 @@ from datetime import datetime
 
 # ================= 🔧 [ 1. CONFIGURATION ] =================
 
-MASTER_ADMIN_TOKEN = "8685933992:AAFCo_sbZdsKEDbrckJBTmB4Kmh0ZLorfU8"
-ADMIN_IDS = [6293094676]
+# Railway Environment Variables থেকে টোকেন নিবে (GitHub এ টোকেন থাকবে না)
+MASTER_ADMIN_TOKEN = os.environ.get("MASTER_ADMIN_TOKEN")
+ADMIN_IDS_STR = os.environ.get("ADMIN_IDS", "6293094676")
+ADMIN_IDS = [int(x.strip()) for x in ADMIN_IDS_STR.split(",")]
 
 master_bot = telebot.TeleBot(MASTER_ADMIN_TOKEN)
 DB_FILE = "id_receiver_data.json"
@@ -265,7 +267,7 @@ def process_file_worker(bot, chat_id, file_type, file_path, original_name, payme
                     bot.send_document(
                         chat_id,
                         f,
-                        caption=f"⚠️ *DUPLICATE DATA FOUND!*\n\n📊 {len(global_duplicate_rows)} rows already exist in database."
+                        caption=f"⚠️ *DUPLICATE DATA FOUND!*\n\n📊 {len(global_duplicate_rows)} rows already exist in database.\n\n✅ Only truly unique rows were saved."
                     )
                 os.remove(dup_file_path)
             except:
@@ -279,7 +281,9 @@ def process_file_worker(bot, chat_id, file_type, file_path, original_name, payme
             bot.send_message(
                 chat_id,
                 "❌ *NO UNIQUE DATA!*\n\n"
-                f"⚠️ All rows already exist in database.",
+                f"📁 File: `{original_name}`\n"
+                f"⚠️ All rows already exist in database.\n\n"
+                f"📊 {len(global_duplicate_rows)} duplicate rows found.",
                 parse_mode="Markdown"
             )
             return False
@@ -297,7 +301,7 @@ def process_file_worker(bot, chat_id, file_type, file_path, original_name, payme
                     bot.send_document(
                         chat_id,
                         f,
-                        caption=f"⚠️ *DUPLICATE ROWS IN YOUR FILE!*\n\n📊 {len(duplicate_rows)} duplicate rows found inside your file."
+                        caption=f"⚠️ *DUPLICATE ROWS IN YOUR FILE!*\n\n📁 File: `{original_name}`\n📊 {len(duplicate_rows)} duplicate rows found inside your file.\n\n✅ Only unique rows were processed further."
                     )
                 os.remove(dup_file_path)
             except:
@@ -313,7 +317,9 @@ def process_file_worker(bot, chat_id, file_type, file_path, original_name, payme
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "file_type": file_type,
             "total_rows_in_file": valid_rows,
-            "empty_rows": empty_rows
+            "empty_rows": empty_rows,
+            "duplicate_rows_count": len(duplicate_rows),
+            "global_duplicate_count": len(global_duplicate_rows)
         }
         
         file_db[file_hash] = file_info
@@ -334,13 +340,17 @@ def process_file_worker(bot, chat_id, file_type, file_path, original_name, payme
         
         save_db(db)
         
+        backup_path = os.path.join("backup", f"{file_type}_{file_hash}_{original_name}")
+        with open(file_path, "rb") as src, open(backup_path, "wb") as dst:
+            dst.write(src.read())
+        
         warning_msg = ""
         if empty_rows > 0:
             warning_msg = f"\n⚠️ {empty_rows} rows had no data!"
         if duplicate_rows:
-            warning_msg += f"\n⚠️ {len(duplicate_rows)} duplicate rows removed!"
+            warning_msg += f"\n⚠️ {len(duplicate_rows)} duplicate rows removed from your file!"
         if global_duplicate_rows:
-            warning_msg += f"\n⚠️ {len(global_duplicate_rows)} rows already existed!"
+            warning_msg += f"\n⚠️ {len(global_duplicate_rows)} rows already existed in database!"
         
         result_msg = (
             f"✅ *FILE PROCESSED!*\n\n"
@@ -354,6 +364,20 @@ def process_file_worker(bot, chat_id, file_type, file_path, original_name, payme
         )
         
         bot.send_message(chat_id, result_msg, parse_mode="Markdown")
+        
+        for admin_id in ADMIN_IDS:
+            try:
+                master_bot.send_message(
+                    admin_id, 
+                    f"📢 *NEW FILE RECEIVED!*\n"
+                    f"👤 {username}\n"
+                    f"📂 {file_type}\n"
+                    f"📊 {valid_rows} unique rows\n"
+                    f"💳 {payment_method} - {payment_number}",
+                    parse_mode="Markdown"
+                )
+            except:
+                pass
         
         return True
         
@@ -411,7 +435,7 @@ def start_user_bot(token):
                 f"   • pass / Pass / PASS\n"
                 f"   • 2fa / 2Fa / 2FA (optional)\n"
                 f"💳 *Payment:* bKash, Nagad, Rocket, Binance\n"
-                f"🔄 *Auto duplicate remove*\n\n"
+                f"🔄 *Auto duplicate remove (file + global)*\n\n"
                 f"📌 *Click below to start*",
                 parse_mode="Markdown",
                 reply_markup=kb
@@ -658,7 +682,7 @@ def m_broadcast(m):
     
     user_ids = load_user_ids()
     if not user_ids:
-        master_bot.send_message(m.chat.id, "❌ No users found!", parse_mode="Markdown")
+        master_bot.send_message(m.chat.id, "❌ No users found! Users need to start the bot first.", parse_mode="Markdown")
         return
     
     kb = types.InlineKeyboardMarkup(row_width=1)
@@ -876,12 +900,14 @@ def m_payment_list(m):
         master_bot.send_message(m.chat.id, "❌ No data found!", parse_mode="Markdown")
         return
     
-    # Group and sort by payment method
+    # Group and sort by payment method (bKash, Nagad, Rocket, Binance)
     payment_order = {"bKash": 1, "Nagad": 2, "Rocket": 3, "Binance": 4}
     submitter_data.sort(key=lambda x: (payment_order.get(x["payment"], 999), -x["total_rows"]))
     
+    # Create DataFrame
     df = pd.DataFrame(submitter_data)
     
+    # Save to file
     data_file = f"payment_list_{m.chat.id}.xlsx"
     try:
         df.to_excel(data_file, index=False)
@@ -889,11 +915,13 @@ def m_payment_list(m):
         data_file = f"payment_list_{m.chat.id}.csv"
         df.to_csv(data_file, index=False, encoding='utf-8-sig')
     
+    # Calculate totals
     total_submitters = len(submitter_data)
     total_files = sum(d["total_files"] for d in submitter_data)
     total_rows = sum(d["total_rows"] for d in submitter_data)
     total_ok = sum(d["ok"] for d in submitter_data)
     
+    # Count by payment method
     bkash_count = len([x for x in submitter_data if x["payment"] == "bKash"])
     nagad_count = len([x for x in submitter_data if x["payment"] == "Nagad"])
     rocket_count = len([x for x in submitter_data if x["payment"] == "Rocket"])
@@ -917,7 +945,7 @@ def m_payment_list(m):
         master_bot.send_document(
             m.chat.id, 
             f, 
-            caption=f"📊 PAYMENT LIST\n\nColumns: submitted_by, payment, number, total_files, total_rows, ok"
+            caption=f"📊 PAYMENT LIST (Grouped by Payment Method)\n\nColumns: submitted_by, payment, number, total_files, total_rows, ok"
         )
     
     os.remove(data_file)
@@ -1273,12 +1301,20 @@ def m_download_type_callback(c):
                         rows_with_2fa += 1
                     
                     writer.writerow([
-                        user_val,
-                        pass_val,
-                        twofa_val,
+                        user_val if user_val else "",
+                        pass_val if pass_val else "",
+                        twofa_val if twofa_val else "",
                         item.get("submitted_by", ""),
                         item.get("submitted_at", "")
                     ])
+            else:
+                writer.writerow([
+                    item.get("user", ""),
+                    item.get("pass", ""),
+                    item.get("2fa", ""),
+                    item.get("submitted_by", ""),
+                    item.get("submitted_at", "")
+                ])
     
     try:
         master_bot.delete_message(c.message.chat.id, status_msg.message_id)
@@ -1289,14 +1325,14 @@ def m_download_type_callback(c):
         master_bot.send_document(
             c.message.chat.id, 
             f, 
-            caption=f"📊 {display_type}\n\nTotal rows: {total_rows}\nRows with 2FA: {rows_with_2fa}"
+            caption=f"📊 {display_type}\n📋 All user data\n\nColumns: user, pass, 2fa, submitted_by, submitted_at\n\nTotal rows: {total_rows}\nRows with 2FA: {rows_with_2fa}"
         )
     
     os.remove(data_file)
     master_bot.answer_callback_query(c.id, f"{display_type} data sent!")
 
 
-# ================= ➕ [ 5.8 ADD/REMOVE BOT ] =================
+# ================= ➕ [ 5.8 ADD/REMOVE BOT (More Options) ] =================
 
 @master_bot.message_handler(func=lambda m: m.text == "➕ Add Bot")
 def m_add_bot(m):
@@ -1400,6 +1436,22 @@ def m_confirm_clear(c):
                 except:
                     pass
     
+    dup_folder = "duplicate_files"
+    if os.path.exists(dup_folder):
+        for f in os.listdir(dup_folder):
+            try:
+                os.remove(os.path.join(dup_folder, f))
+            except:
+                pass
+    
+    backup_folder = "backup"
+    if os.path.exists(backup_folder):
+        for f in os.listdir(backup_folder):
+            try:
+                os.remove(os.path.join(backup_folder, f))
+            except:
+                pass
+    
     db = load_db()
     db["files"] = {"ig_cookies": {}, "ig_2fa": {}, "fb_0fd_2fa": {}}
     db["all_unique_data"] = {"ig_cookies": {}, "ig_2fa": {}, "fb_0fd_2fa": {}}
@@ -1497,18 +1549,24 @@ if __name__ == "__main__":
     print("👑 ID RECEIVER SYSTEM v17.0")
     print("🎛️ CASE-INSENSITIVE COLUMN MATCHING")
     print("🎛️ 3-COLUMN DUPLICATE CHECK (user+pass+2fa)")
+    print("🎛️ RAILWAY ENVIRONMENT VARIABLES")
     print("=" * 50)
     
-    load_db()
-    run_all_bots()
-    
-    print(f"✅ Master Bot Online!")
-    print(f"📌 Send /start to access admin panel")
-    print("=" * 50)
-    
-    while True:
-        try:
-            master_bot.infinity_polling(timeout=60, skip_pending=True)
-        except Exception as e:
-            print(f"❌ Error: {e}")
-            time.sleep(5)
+    # Check if token is available
+    if not MASTER_ADMIN_TOKEN:
+        print("❌ ERROR: MASTER_ADMIN_TOKEN not found in environment variables!")
+        print("📌 Please set MASTER_ADMIN_TOKEN in Railway Variables")
+    else:
+        load_db()
+        run_all_bots()
+        
+        print(f"✅ Master Bot Online!")
+        print(f"📌 Send /start to access admin panel")
+        print("=" * 50)
+        
+        while True:
+            try:
+                master_bot.infinity_polling(timeout=60, skip_pending=True)
+            except Exception as e:
+                print(f"❌ Error: {e}")
+                time.sleep(5)
