@@ -844,6 +844,8 @@ def back_to_main_menu(m):
 
 # ================= 📢 [ 5.1 BROADCAST ] =================
 
+# ================= 📢 [ 5.2 BROADCAST - UPDATED ] =================
+
 @master_bot.message_handler(func=lambda m: m.text == "📢 Broadcast")
 def m_broadcast(m):
     if m.from_user.id not in ADMIN_IDS:
@@ -851,7 +853,7 @@ def m_broadcast(m):
     
     user_ids = load_user_ids()
     if not user_ids:
-        master_bot.send_message(m.chat.id, "❌ No users found!", parse_mode="Markdown")
+        master_bot.send_message(m.chat.id, "❌ No users found! Users need to start the bot first.", parse_mode="Markdown")
         return
     
     kb = types.InlineKeyboardMarkup(row_width=1)
@@ -941,14 +943,23 @@ def send_text_broadcast(m):
         master_bot.send_message(m.chat.id, "❌ No users found!")
         return
     
+    if not active_bots:
+        master_bot.send_message(
+            m.chat.id, 
+            "❌ *No active user bots!*\n\nPlease add a bot first:\n⚙️ More Options → ➕ Add Bot",
+            parse_mode="Markdown"
+        )
+        return
+    
     status_msg = master_bot.send_message(m.chat.id, f"⏳ Sending to {len(user_ids)} users...")
     
     success = 0
     fail = 0
+    bot_tokens = list(active_bots)
     
     for user_id in user_ids:
         sent = False
-        for bot_token in active_bots:
+        for bot_token in bot_tokens:
             try:
                 bot = telebot.TeleBot(bot_token)
                 bot.send_message(
@@ -976,6 +987,10 @@ def send_text_broadcast(m):
     result_msg += f"❌ Failed: {fail}\n"
     result_msg += f"👥 Total users: {len(user_ids)}"
     
+    if fail > 0:
+        result_msg += f"\n\n⚠️ {fail} users didn't receive the message.\n"
+        result_msg += f"💡 Make sure all user bots are active."
+    
     master_bot.send_message(m.chat.id, result_msg, parse_mode="Markdown")
 
 def send_media_broadcast(m):
@@ -988,6 +1003,14 @@ def send_media_broadcast(m):
         master_bot.send_message(m.chat.id, "❌ No users found!")
         return
     
+    if not active_bots:
+        master_bot.send_message(
+            m.chat.id, 
+            "❌ *No active user bots!*\n\nPlease add a bot first.",
+            parse_mode="Markdown"
+        )
+        return
+    
     try:
         master_bot.delete_message(m.chat.id, m.message_id)
     except:
@@ -997,10 +1020,11 @@ def send_media_broadcast(m):
     
     success = 0
     fail = 0
+    bot_tokens = list(active_bots)
     
     for user_id in user_ids:
         sent = False
-        for bot_token in active_bots:
+        for bot_token in bot_tokens:
             try:
                 bot = telebot.TeleBot(bot_token)
                 
@@ -1033,6 +1057,9 @@ def send_media_broadcast(m):
     result_msg += f"📤 Success: {success}\n"
     result_msg += f"❌ Failed: {fail}\n"
     result_msg += f"👥 Total users: {len(user_ids)}"
+    
+    if fail > 0:
+        result_msg += f"\n\n⚠️ {fail} users didn't receive the message."
     
     master_bot.send_message(m.chat.id, result_msg, parse_mode="Markdown")
 
