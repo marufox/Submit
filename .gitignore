@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.db
+*.json
+*.xlsx
+*.csv
+uploads/
+duplicate_files/
+backup/
+.env
+venv/
+env/
+*.log
+*.tmp
