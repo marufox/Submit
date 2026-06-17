@@ -11,10 +11,26 @@ from datetime import datetime
 
 # ================= 🔧 [ 1. CONFIGURATION ] =================
 
-# Railway Environment Variables থেকে টোকেন নিবে (GitHub এ টোকেন থাকবে না)
+# Environment Variables
 MASTER_ADMIN_TOKEN = os.environ.get("MASTER_ADMIN_TOKEN")
 ADMIN_IDS_STR = os.environ.get("ADMIN_IDS", "6293094676")
 ADMIN_IDS = [int(x.strip()) for x in ADMIN_IDS_STR.split(",")]
+
+# ========================================================
+# 🔥 এখানে আপনার ইচ্ছামতো নাম ও আইকন পরিবর্তন করুন
+# ========================================================
+TYPE_NAMES = {
+    "ig_cookies": "Instagram Cookies",      # এখানে যা চান দিন
+    "ig_2fa": "Instagram 2FA",               # এখানে যা চান দিন
+    "fb_0fd_2fa": "Facebook 0FD 2FA"         # এখানে যা চান দিন
+}
+
+TYPE_ICONS = {
+    "ig_cookies": "📱",    # এখানে যা চান দিন
+    "ig_2fa": "🔐",        # এখানে যা চান দিন
+    "fb_0fd_2fa": "📘"     # এখানে যা চান দিন
+}
+# ========================================================
 
 master_bot = telebot.TeleBot(MASTER_ADMIN_TOKEN)
 DB_FILE = "id_receiver_data.json"
@@ -38,7 +54,13 @@ current_ok_data = {
     "scan_type": None
 }
 
-# User IDs tracking for broadcast
+def get_type_display_name(type_key):
+    return TYPE_NAMES.get(type_key, type_key)
+
+def get_type_icon(type_key):
+    return TYPE_ICONS.get(type_key, "📁")
+
+# User IDs
 USER_IDS_FILE = "user_ids.json"
 
 def load_user_ids():
@@ -78,7 +100,8 @@ def load_db():
                     "ig_2fa": {},
                     "fb_0fd_2fa": {}
                 },
-                "global_unique_keys": []
+                "global_unique_keys": [],
+                "user_payment_settings": {}
             }
             with open(DB_FILE, "w") as f:
                 json.dump(default, f, indent=4)
@@ -87,6 +110,8 @@ def load_db():
             data = json.load(f)
             if "global_unique_keys" not in data:
                 data["global_unique_keys"] = []
+            if "user_payment_settings" not in data:
+                data["user_payment_settings"] = {}
             return data
 
 def save_db(data):
@@ -98,34 +123,48 @@ def save_db(data):
 
 # ================= 🔐 [ 3. FILE PROCESSING ] =================
 
-def find_columns_case_insensitive(row):
-    """
-    Find column names case-insensitively: 'user', 'pass', '2fa'
-    """
+def auto_detect_columns(row):
     user_val = ""
     pass_val = ""
     twofa_val = ""
     
-    # Convert row keys to lowercase for case-insensitive matching
-    row_lower = {k.lower(): v for k, v in row.items()}
+    values = []
+    for k, v in row.items():
+        v_str = str(v).strip()
+        if v_str and v_str != 'nan' and v_str != 'None':
+            values.append(v_str)
     
-    # Check for user column
-    if 'user' in row_lower:
-        val = row_lower['user']
-        if val and str(val).strip():
-            user_val = str(val).strip()
-    
-    # Check for pass column
-    if 'pass' in row_lower:
-        val = row_lower['pass']
-        if val and str(val).strip():
-            pass_val = str(val).strip()
-    
-    # Check for 2fa column
-    if '2fa' in row_lower:
-        val = row_lower['2fa']
-        if val and str(val).strip():
-            twofa_val = str(val).strip()
+    if len(values) == 0:
+        return "", "", ""
+    if len(values) == 1:
+        return values[0], "", ""
+    if len(values) == 2:
+        return values[0], values[1], ""
+    if len(values) >= 3:
+        email_idx = -1
+        for i, val in enumerate(values):
+            if '@' in val and '.' in val:
+                email_idx = i
+                break
+        
+        if email_idx != -1:
+            user_val = values[email_idx]
+            for i, val in enumerate(values):
+                if i != email_idx and len(val) >= 4:
+                    if not pass_val:
+                        pass_val = val
+                    elif not twofa_val and len(val) <= 6 and val.isdigit():
+                        twofa_val = val
+            if not twofa_val:
+                for i, val in enumerate(values):
+                    if i != email_idx and val != pass_val:
+                        if len(val) <= 8 and (val.isdigit() or val.isalpha()):
+                            twofa_val = val
+        else:
+            user_val = values[0]
+            pass_val = values[1]
+            if len(values) >= 3:
+                twofa_val = values[2]
     
     return user_val, pass_val, twofa_val
 
@@ -142,17 +181,9 @@ def process_file_with_columns(file_path, original_filename, file_type):
             return None, 0, None, 0
         
         print(f"\n📋 Columns found in {original_filename}: {list(df.columns)}")
+        print(f"📊 Total rows: {len(df)}")
         
-        total_rows = len(df)
-        
-        # Convert dataframe columns to lowercase for checking
-        df_columns_lower = [col.lower() for col in df.columns]
-        
-        # Check if required columns exist (case-insensitive)
-        has_user = 'user' in df_columns_lower
-        has_pass = 'pass' in df_columns_lower
-        
-        if not (has_user and has_pass):
+        if len(df.columns) < 1:
             return None, 0, None, 0
         
         filtered_data = []
@@ -161,30 +192,28 @@ def process_file_with_columns(file_path, original_filename, file_type):
         
         for idx, row in df.iterrows():
             row_dict = row.to_dict()
-            
-            user_val, pass_val, twofa_val = find_columns_case_insensitive(row_dict)
+            user_val, pass_val, twofa_val = auto_detect_columns(row_dict)
             
             if twofa_val:
                 rows_with_2fa += 1
             
-            if idx < 3:
+            if idx < 5:
                 print(f"Row {idx}: user='{user_val}', pass='{pass_val}', 2fa='{str(twofa_val)[:30]}...'")
             
-            if user_val or pass_val:
-                filtered_data.append({
-                    "user": user_val,
-                    "pass": pass_val,
-                    "2fa": twofa_val
-                })
-            else:
-                empty_count += 1
+            filtered_data.append({
+                "user": user_val,
+                "pass": pass_val,
+                "2fa": twofa_val
+            })
         
         with open(file_path, "rb") as f:
             file_hash = hashlib.md5(f.read()).hexdigest()
         
-        print(f"✅ Valid rows: {len(filtered_data)}, Empty rows: {empty_count}, Rows with 2fa: {rows_with_2fa}")
+        valid_rows = len([d for d in filtered_data if d['user'] or d['pass']])
         
-        return filtered_data, len(filtered_data), file_hash, empty_count
+        print(f"✅ Total rows: {len(filtered_data)}, Valid rows: {valid_rows}, Rows with 2fa: {rows_with_2fa}")
+        
+        return filtered_data, valid_rows, file_hash, empty_count
         
     except Exception as e:
         print(f"Process error: {e}")
@@ -196,23 +225,19 @@ def process_file_worker(bot, chat_id, file_type, file_path, original_name, payme
         
         filtered_data, valid_rows, file_hash, empty_rows = process_file_with_columns(file_path, original_name, file_type)
         
-        if filtered_data is None or not filtered_data:
+        if filtered_data is None or not filtered_data or valid_rows == 0:
             os.remove(file_path)
             bot.send_message(
                 chat_id, 
-                "❌ *NO VALID DATA FOUND!*\n\n"
-                "📌 Your file must have these columns (case-insensitive):\n"
-                "• user / User / USER\n"
-                "• pass / Pass / PASS\n"
-                "• 2fa / 2Fa / 2FA (optional)\n\n"
-                "✅ Any case variation will work!",
+                "❌ *NO DATA FOUND!*\n\n"
+                "📌 Your file was empty or had no readable data.\n\n"
+                "✅ Try uploading a file with at least 1 column of data.",
                 parse_mode="Markdown"
             )
             return False
         
         file_db = db["files"][file_type]
         
-        # ========== DUPLICATE FILE CHECK ==========
         if file_hash in file_db:
             with open(file_path, "rb") as dup_file:
                 bot.send_document(
@@ -224,7 +249,6 @@ def process_file_worker(bot, chat_id, file_type, file_path, original_name, payme
             os.remove(file_path)
             return False
         
-        # ========== CHECK DUPLICATE DATA (3 columns: user+pass+2fa) ==========
         unique_rows = []
         duplicate_rows = []
         seen_keys = set()
@@ -237,7 +261,6 @@ def process_file_worker(bot, chat_id, file_type, file_path, original_name, payme
                 seen_keys.add(row_key)
                 unique_rows.append(row)
         
-        # ========== CHECK GLOBAL DUPLICATES ==========
         global_unique_keys = set(db.get("global_unique_keys", []))
         
         truly_unique_rows = []
@@ -253,7 +276,6 @@ def process_file_worker(bot, chat_id, file_type, file_path, original_name, payme
         
         db["global_unique_keys"] = list(global_unique_keys)
         
-        # Send global duplicates back to user
         if global_duplicate_rows:
             dup_df = pd.DataFrame(global_duplicate_rows)
             dup_file_path = f"duplicate_rows_global_{int(time.time())}_{original_name}"
@@ -345,8 +367,6 @@ def process_file_worker(bot, chat_id, file_type, file_path, original_name, payme
             dst.write(src.read())
         
         warning_msg = ""
-        if empty_rows > 0:
-            warning_msg = f"\n⚠️ {empty_rows} rows had no data!"
         if duplicate_rows:
             warning_msg += f"\n⚠️ {len(duplicate_rows)} duplicate rows removed from your file!"
         if global_duplicate_rows:
@@ -355,7 +375,7 @@ def process_file_worker(bot, chat_id, file_type, file_path, original_name, payme
         result_msg = (
             f"✅ *FILE PROCESSED!*\n\n"
             f"📁 *File:* `{original_name}`\n"
-            f"📂 *Type:* `{file_type}`\n"
+            f"📂 *Type:* `{get_type_display_name(file_type)}`\n"
             f"💳 *Payment:* {payment_method} - `{payment_number}`\n"
             f"━━━━━━━━━━━━━━━━━━━━\n"
             f"📊 *Valid rows:* `{valid_rows}`\n"
@@ -371,7 +391,7 @@ def process_file_worker(bot, chat_id, file_type, file_path, original_name, payme
                     admin_id, 
                     f"📢 *NEW FILE RECEIVED!*\n"
                     f"👤 {username}\n"
-                    f"📂 {file_type}\n"
+                    f"📂 {get_type_display_name(file_type)}\n"
                     f"📊 {valid_rows} unique rows\n"
                     f"💳 {payment_method} - {payment_number}",
                     parse_mode="Markdown"
@@ -389,19 +409,37 @@ def get_type_keyboard():
     kb = types.InlineKeyboardMarkup(row_width=2)
     
     if type_status["ig_cookies"]:
-        kb.add(types.InlineKeyboardButton("🟢 IG Cookies", callback_data="type_ig_cookies"))
+        kb.add(types.InlineKeyboardButton(
+            f"{get_type_icon('ig_cookies')} {get_type_display_name('ig_cookies')}", 
+            callback_data="type_ig_cookies"
+        ))
     else:
-        kb.add(types.InlineKeyboardButton("🔴 IG Cookies (Closed)", callback_data="type_disabled_ig_cookies"))
+        kb.add(types.InlineKeyboardButton(
+            f"🔴 {get_type_display_name('ig_cookies')} (Closed)", 
+            callback_data="type_disabled_ig_cookies"
+        ))
     
     if type_status["ig_2fa"]:
-        kb.add(types.InlineKeyboardButton("🟢 IG 2FA", callback_data="type_ig_2fa"))
+        kb.add(types.InlineKeyboardButton(
+            f"{get_type_icon('ig_2fa')} {get_type_display_name('ig_2fa')}", 
+            callback_data="type_ig_2fa"
+        ))
     else:
-        kb.add(types.InlineKeyboardButton("🔴 IG 2FA (Closed)", callback_data="type_disabled_ig_2fa"))
+        kb.add(types.InlineKeyboardButton(
+            f"🔴 {get_type_display_name('ig_2fa')} (Closed)", 
+            callback_data="type_disabled_ig_2fa"
+        ))
     
     if type_status["fb_0fd_2fa"]:
-        kb.add(types.InlineKeyboardButton("🟢 FB 0FD 2FA", callback_data="type_fb_0fd_2fa"))
+        kb.add(types.InlineKeyboardButton(
+            f"{get_type_icon('fb_0fd_2fa')} {get_type_display_name('fb_0fd_2fa')}", 
+            callback_data="type_fb_0fd_2fa"
+        ))
     else:
-        kb.add(types.InlineKeyboardButton("🔴 FB 0FD 2FA (Closed)", callback_data="type_disabled_fb_0fd_2fa"))
+        kb.add(types.InlineKeyboardButton(
+            f"🔴 {get_type_display_name('fb_0fd_2fa')} (Closed)", 
+            callback_data="type_disabled_fb_0fd_2fa"
+        ))
     
     kb.add(types.InlineKeyboardButton("❌ Cancel", callback_data="cancel_submit"))
     
@@ -423,19 +461,25 @@ def start_user_bot(token):
             
             kb = types.InlineKeyboardMarkup(row_width=1)
             btn1 = types.InlineKeyboardButton("📁 Submit File", callback_data="submit_file")
-            kb.add(btn1)
+            btn2 = types.InlineKeyboardButton("💳 Change Payment", callback_data="change_payment")
+            kb.add(btn1, btn2)
+            
+            db = load_db()
+            user_payment = db["user_payment_settings"].get(str(m.chat.id), {})
+            
+            payment_info = ""
+            if user_payment:
+                payment_info = f"\n\n💳 *Current Payment:*\n{user_payment.get('payment_method', 'N/A')} - `{user_payment.get('payment_number', 'N/A')}`"
             
             bot.send_message(
                 m.chat.id,
                 f"✨ *ID RECEIVER BOT* ✨\n\n"
-                f"👋 *Hello {m.from_user.first_name}!*\n\n"
-                f"📂 *Supported:* XLSX, CSV\n"
-                f"📌 *Required columns (case-insensitive):*\n"
-                f"   • user / User / USER\n"
-                f"   • pass / Pass / PASS\n"
-                f"   • 2fa / 2Fa / 2FA (optional)\n"
+                f"👋 *Hello {m.from_user.first_name}!*{payment_info}\n\n"
+                f"📂 *Supported:* Any file format\n"
+                f"📌 *No specific columns needed!*\n"
+                f"   • Auto-detects user, pass, 2fa\n"
                 f"💳 *Payment:* bKash, Nagad, Rocket, Binance\n"
-                f"🔄 *Auto duplicate remove (file + global)*\n\n"
+                f"🔄 *Auto duplicate remove*\n\n"
                 f"📌 *Click below to start*",
                 parse_mode="Markdown",
                 reply_markup=kb
@@ -445,7 +489,70 @@ def start_user_bot(token):
         def cb_handler(c):
             user_id = c.message.chat.id
             
-            if c.data == "submit_file":
+            if c.data == "change_payment":
+                try:
+                    bot.delete_message(c.message.chat.id, c.message.message_id)
+                except:
+                    pass
+                
+                kb = types.InlineKeyboardMarkup(row_width=2)
+                btn1 = types.InlineKeyboardButton("🏦 bKash", callback_data="change_pay_bkash")
+                btn2 = types.InlineKeyboardButton("🏧 Nagad", callback_data="change_pay_nagad")
+                btn3 = types.InlineKeyboardButton("💳 Rocket", callback_data="change_pay_rocket")
+                btn4 = types.InlineKeyboardButton("₿ Binance", callback_data="change_pay_binance")
+                btn5 = types.InlineKeyboardButton("❌ Cancel", callback_data="cancel_payment_change")
+                kb.add(btn1, btn2, btn3, btn4, btn5)
+                
+                bot.send_message(
+                    user_id,
+                    "💰 *Change Payment Method*\n\n"
+                    "Select your new payment method:",
+                    parse_mode="Markdown",
+                    reply_markup=kb
+                )
+            
+            elif c.data.startswith("change_pay_"):
+                method = c.data.replace("change_pay_", "")
+                method_name = method.capitalize()
+                if method == "bkash":
+                    method_name = "bKash"
+                elif method == "binance":
+                    method_name = "Binance"
+                
+                user_sessions[user_id] = {"changing_payment": True, "new_method": method_name}
+                
+                try:
+                    bot.delete_message(c.message.chat.id, c.message.message_id)
+                except:
+                    pass
+                
+                bot.send_message(
+                    user_id,
+                    f"✅ *{method_name} Selected*\n\n"
+                    f"📝 Send your new {method_name} number:",
+                    parse_mode="Markdown"
+                )
+                bot.register_next_step_handler_by_chat_id(user_id, update_payment_number)
+            
+            elif c.data == "cancel_payment_change":
+                try:
+                    bot.delete_message(c.message.chat.id, c.message.message_id)
+                except:
+                    pass
+                
+                kb = types.InlineKeyboardMarkup(row_width=1)
+                btn1 = types.InlineKeyboardButton("📁 Submit File", callback_data="submit_file")
+                btn2 = types.InlineKeyboardButton("💳 Change Payment", callback_data="change_payment")
+                kb.add(btn1, btn2)
+                
+                bot.send_message(
+                    user_id,
+                    "❌ *Payment change cancelled*",
+                    parse_mode="Markdown",
+                    reply_markup=kb
+                )
+            
+            elif c.data == "submit_file":
                 try:
                     bot.delete_message(c.message.chat.id, c.message.message_id)
                 except:
@@ -468,27 +575,53 @@ def start_user_bot(token):
                     bot.answer_callback_query(c.id, "❌ This type is currently closed!", show_alert=True)
                     return
                 
-                user_sessions[user_id] = {"file_type": file_type}
+                db = load_db()
+                user_payment = db["user_payment_settings"].get(str(user_id), {})
                 
-                kb = types.InlineKeyboardMarkup(row_width=2)
-                btn1 = types.InlineKeyboardButton("🏦 bKash", callback_data="pay_bkash")
-                btn2 = types.InlineKeyboardButton("🏧 Nagad", callback_data="pay_nagad")
-                btn3 = types.InlineKeyboardButton("💳 Rocket", callback_data="pay_rocket")
-                btn4 = types.InlineKeyboardButton("₿ Binance", callback_data="pay_binance")
-                btn5 = types.InlineKeyboardButton("❌ Cancel", callback_data="cancel_submit")
-                kb.add(btn1, btn2, btn3, btn4, btn5)
-                
-                try:
-                    bot.delete_message(c.message.chat.id, c.message.message_id)
-                except:
-                    pass
-                
-                bot.send_message(
-                    c.message.chat.id,
-                    "💰 *Select Payment Method:*",
-                    parse_mode="Markdown",
-                    reply_markup=kb
-                )
+                if user_payment and user_payment.get("payment_method") and user_payment.get("payment_number"):
+                    user_sessions[user_id] = {
+                        "file_type": file_type,
+                        "payment_method": user_payment["payment_method"],
+                        "payment_number": user_payment["payment_number"]
+                    }
+                    
+                    try:
+                        bot.delete_message(c.message.chat.id, c.message.message_id)
+                    except:
+                        pass
+                    
+                    bot.send_message(
+                        user_id,
+                        f"✅ *Auto Payment Selected*\n\n"
+                        f"💳 {user_payment['payment_method']} - `{user_payment['payment_number']}`\n\n"
+                        f"📎 *Send your file now*\n\n"
+                        f"📌 Any file format accepted\n"
+                        f"🔄 Auto-detects columns",
+                        parse_mode="Markdown"
+                    )
+                    bot.register_next_step_handler_by_chat_id(user_id, receive_file)
+                else:
+                    user_sessions[user_id] = {"file_type": file_type}
+                    
+                    kb = types.InlineKeyboardMarkup(row_width=2)
+                    btn1 = types.InlineKeyboardButton("🏦 bKash", callback_data="pay_bkash")
+                    btn2 = types.InlineKeyboardButton("🏧 Nagad", callback_data="pay_nagad")
+                    btn3 = types.InlineKeyboardButton("💳 Rocket", callback_data="pay_rocket")
+                    btn4 = types.InlineKeyboardButton("₿ Binance", callback_data="pay_binance")
+                    btn5 = types.InlineKeyboardButton("❌ Cancel", callback_data="cancel_submit")
+                    kb.add(btn1, btn2, btn3, btn4, btn5)
+                    
+                    try:
+                        bot.delete_message(c.message.chat.id, c.message.message_id)
+                    except:
+                        pass
+                    
+                    bot.send_message(
+                        c.message.chat.id,
+                        "💰 *Select Payment Method:*",
+                        parse_mode="Markdown",
+                        reply_markup=kb
+                    )
             
             elif c.data.startswith("pay_"):
                 method = c.data.replace("pay_", "")
@@ -507,16 +640,18 @@ def start_user_bot(token):
                 
                 bot.send_message(
                     user_id,
-                    f"✅ *{method_name} Selected*\n\n📝 Send your {method_name} number:",
+                    f"✅ *{method_name} Selected*\n\n📝 Send your {method_name} number (you won't need to enter this again):",
                     parse_mode="Markdown"
                 )
-                bot.register_next_step_handler_by_chat_id(user_id, get_payment_number)
+                bot.register_next_step_handler_by_chat_id(user_id, save_payment_and_continue)
             
             elif c.data == "cancel_submit":
                 user_sessions.pop(user_id, None)
                 
                 kb = types.InlineKeyboardMarkup(row_width=1)
-                kb.add(types.InlineKeyboardButton("📁 Submit File", callback_data="submit_file"))
+                btn1 = types.InlineKeyboardButton("📁 Submit File", callback_data="submit_file")
+                btn2 = types.InlineKeyboardButton("💳 Change Payment", callback_data="change_payment")
+                kb.add(btn1, btn2)
                 
                 try:
                     bot.delete_message(c.message.chat.id, c.message.message_id)
@@ -530,7 +665,40 @@ def start_user_bot(token):
                     reply_markup=kb
                 )
 
-        def get_payment_number(m):
+        def update_payment_number(m):
+            user_id = m.chat.id
+            
+            if user_id not in user_sessions or not user_sessions[user_id].get("changing_payment"):
+                bot.send_message(user_id, "❌ Session expired. Use /start")
+                return
+            
+            new_number = m.text.strip()
+            new_method = user_sessions[user_id]["new_method"]
+            
+            db = load_db()
+            db["user_payment_settings"][str(user_id)] = {
+                "payment_method": new_method,
+                "payment_number": new_number
+            }
+            save_db(db)
+            
+            user_sessions.pop(user_id, None)
+            
+            kb = types.InlineKeyboardMarkup(row_width=1)
+            btn1 = types.InlineKeyboardButton("📁 Submit File", callback_data="submit_file")
+            btn2 = types.InlineKeyboardButton("💳 Change Payment", callback_data="change_payment")
+            kb.add(btn1, btn2)
+            
+            bot.send_message(
+                user_id,
+                f"✅ *Payment Updated!*\n\n"
+                f"💳 {new_method} - `{new_number}`\n\n"
+                f"Your payment method has been saved.",
+                parse_mode="Markdown",
+                reply_markup=kb
+            )
+
+        def save_payment_and_continue(m):
             user_id = m.chat.id
             
             if user_id not in user_sessions:
@@ -540,9 +708,19 @@ def start_user_bot(token):
             payment_number = m.text.strip()
             user_sessions[user_id]["payment_number"] = payment_number
             
+            db = load_db()
+            db["user_payment_settings"][str(user_id)] = {
+                "payment_method": user_sessions[user_id]["payment_method"],
+                "payment_number": payment_number
+            }
+            save_db(db)
+            
             bot.send_message(
                 user_id,
-                f"📎 *Send your file*\n\n📂 XLSX or CSV file\n📌 Must have columns: user, pass, 2fa (case-insensitive)\n\n📌 Upload:",
+                f"✅ *Payment saved!*\n\n"
+                f"💳 {user_sessions[user_id]['payment_method']} - `{payment_number}`\n"
+                f"🔄 You won't need to enter this again.\n\n"
+                f"📎 *Send your file now*",
                 parse_mode="Markdown"
             )
             bot.register_next_step_handler_by_chat_id(user_id, receive_file)
@@ -559,11 +737,6 @@ def start_user_bot(token):
                 return
             
             file_type = user_sessions[user_id]["file_type"]
-            filename = m.document.file_name.lower()
-            
-            if not (filename.endswith(".xlsx") or filename.endswith(".csv")):
-                bot.send_message(user_id, "❌ Only .xlsx or .csv files are supported!")
-                return
             
             file_info = bot.get_file(m.document.file_id)
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -615,16 +788,13 @@ def m_start(m):
         m.chat.id,
         f"👑 *MASTER ADMIN PANEL* 👑\n\n"
         f"🎛️ *Current Status:*\n"
-        f"🟢 IG Cookies: {'ON' if type_status['ig_cookies'] else 'OFF'}\n"
-        f"🟢 IG 2FA: {'ON' if type_status['ig_2fa'] else 'OFF'}\n"
-        f"🟢 FB 0FD 2FA: {'ON' if type_status['fb_0fd_2fa'] else 'OFF'}\n\n"
+        f"🟢 {get_type_display_name('ig_cookies')}: {'ON' if type_status['ig_cookies'] else 'OFF'}\n"
+        f"🟢 {get_type_display_name('ig_2fa')}: {'ON' if type_status['ig_2fa'] else 'OFF'}\n"
+        f"🟢 {get_type_display_name('fb_0fd_2fa')}: {'ON' if type_status['fb_0fd_2fa'] else 'OFF'}\n\n"
         f"📌 Select an option below",
         parse_mode="Markdown",
         reply_markup=kb
     )
-
-
-# ================= ⚙️ [ 5.1 MORE OPTIONS ] =================
 
 @master_bot.message_handler(func=lambda m: m.text == "⚙️ More Options")
 def m_more_options(m):
@@ -633,7 +803,8 @@ def m_more_options(m):
     
     kb = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     kb.row("➕ Add Bot", "❌ Remove Bot")
-    kb.row("🔄 Reset All Types", "🗑 Clear All Data")
+    kb.row("🔄 Reset All Types", "🗑 Clear Data")
+    kb.row("💳 User Payments", "🔍 Search User")
     kb.row("🔙 Back to Main Menu")
     
     master_bot.send_message(
@@ -642,7 +813,6 @@ def m_more_options(m):
         parse_mode="Markdown",
         reply_markup=kb
     )
-
 
 @master_bot.message_handler(func=lambda m: m.text == "🔙 Back to Main Menu")
 def back_to_main_menu(m):
@@ -664,16 +834,15 @@ def back_to_main_menu(m):
         m.chat.id,
         f"👑 *MASTER ADMIN PANEL* 👑\n\n"
         f"🎛️ *Current Status:*\n"
-        f"🟢 IG Cookies: {'ON' if type_status['ig_cookies'] else 'OFF'}\n"
-        f"🟢 IG 2FA: {'ON' if type_status['ig_2fa'] else 'OFF'}\n"
-        f"🟢 FB 0FD 2FA: {'ON' if type_status['fb_0fd_2fa'] else 'OFF'}\n\n"
+        f"🟢 {get_type_display_name('ig_cookies')}: {'ON' if type_status['ig_cookies'] else 'OFF'}\n"
+        f"🟢 {get_type_display_name('ig_2fa')}: {'ON' if type_status['ig_2fa'] else 'OFF'}\n"
+        f"🟢 {get_type_display_name('fb_0fd_2fa')}: {'ON' if type_status['fb_0fd_2fa'] else 'OFF'}\n\n"
         f"📌 Select an option below",
         parse_mode="Markdown",
         reply_markup=kb
     )
 
-
-# ================= 📢 [ 5.2 BROADCAST MESSAGE ] =================
+# ================= 📢 [ 5.1 BROADCAST ] =================
 
 @master_bot.message_handler(func=lambda m: m.text == "📢 Broadcast")
 def m_broadcast(m):
@@ -682,7 +851,7 @@ def m_broadcast(m):
     
     user_ids = load_user_ids()
     if not user_ids:
-        master_bot.send_message(m.chat.id, "❌ No users found! Users need to start the bot first.", parse_mode="Markdown")
+        master_bot.send_message(m.chat.id, "❌ No users found!", parse_mode="Markdown")
         return
     
     kb = types.InlineKeyboardMarkup(row_width=1)
@@ -701,7 +870,6 @@ def m_broadcast(m):
         reply_markup=kb
     )
 
-
 @master_bot.callback_query_handler(func=lambda c: c.data.startswith("broadcast_"))
 def broadcast_callback(c):
     if c.from_user.id not in ADMIN_IDS:
@@ -717,10 +885,12 @@ def broadcast_callback(c):
         msg = master_bot.send_message(
             c.message.chat.id,
             "📝 *Send your message*\n\n"
-            "You can use Markdown formatting:\n"
-            "• *bold*\n"
-            "• _italic_\n"
-            "• [link](url)\n\n"
+            "✅ Supports:\n"
+            "• *Bold text*\n"
+            "• _Italic text_\n"
+            "• [Clickable Links](https://example.com)\n"
+            "• Emojis 😊🎉\n"
+            "• Code `inline code`\n\n"
             "Send /cancel to cancel:",
             parse_mode="Markdown"
         )
@@ -736,10 +906,11 @@ def broadcast_callback(c):
             c.message.chat.id,
             "📎 *Send your file/photo/video*\n\n"
             "You can send:\n"
-            "• Photo\n"
-            "• Video\n"
-            "• Document\n"
-            "• Audio\n\n"
+            "• Photo 📷\n"
+            "• Video 🎥\n"
+            "• Document 📄\n"
+            "• Audio 🎵\n\n"
+            "Add caption with formatting if needed.\n"
             "Send /cancel to cancel:",
             parse_mode="Markdown"
         )
@@ -747,7 +918,6 @@ def broadcast_callback(c):
     
     elif c.data == "broadcast_back":
         back_to_main_menu(c)
-
 
 def send_text_broadcast(m):
     if m.from_user.id not in ADMIN_IDS:
@@ -781,7 +951,13 @@ def send_text_broadcast(m):
         for bot_token in active_bots:
             try:
                 bot = telebot.TeleBot(bot_token)
-                bot.send_message(user_id, message_text, parse_mode="Markdown", entities=entities)
+                bot.send_message(
+                    user_id, 
+                    message_text, 
+                    parse_mode="Markdown", 
+                    entities=entities,
+                    disable_web_page_preview=False
+                )
                 success += 1
                 sent = True
                 break
@@ -801,7 +977,6 @@ def send_text_broadcast(m):
     result_msg += f"👥 Total users: {len(user_ids)}"
     
     master_bot.send_message(m.chat.id, result_msg, parse_mode="Markdown")
-
 
 def send_media_broadcast(m):
     if m.from_user.id not in ADMIN_IDS:
@@ -830,13 +1005,13 @@ def send_media_broadcast(m):
                 bot = telebot.TeleBot(bot_token)
                 
                 if m.photo:
-                    bot.send_photo(user_id, m.photo[-1].file_id, caption=m.caption)
+                    bot.send_photo(user_id, m.photo[-1].file_id, caption=m.caption, parse_mode="Markdown")
                 elif m.video:
-                    bot.send_video(user_id, m.video.file_id, caption=m.caption)
+                    bot.send_video(user_id, m.video.file_id, caption=m.caption, parse_mode="Markdown")
                 elif m.document:
-                    bot.send_document(user_id, m.document.file_id, caption=m.caption)
+                    bot.send_document(user_id, m.document.file_id, caption=m.caption, parse_mode="Markdown")
                 elif m.audio:
-                    bot.send_audio(user_id, m.audio.file_id, caption=m.caption)
+                    bot.send_audio(user_id, m.audio.file_id, caption=m.caption, parse_mode="Markdown")
                 else:
                     master_bot.send_message(m.chat.id, "❌ Unsupported media type!")
                     return
@@ -861,8 +1036,7 @@ def send_media_broadcast(m):
     
     master_bot.send_message(m.chat.id, result_msg, parse_mode="Markdown")
 
-
-# ================= 📥 [ 5.3 PAYMENT LIST ] =================
+# ================= 📥 [ 5.2 PAYMENT LIST ] =================
 
 @master_bot.message_handler(func=lambda m: m.text == "📥 Payment List")
 def m_payment_list(m):
@@ -900,14 +1074,11 @@ def m_payment_list(m):
         master_bot.send_message(m.chat.id, "❌ No data found!", parse_mode="Markdown")
         return
     
-    # Group and sort by payment method (bKash, Nagad, Rocket, Binance)
     payment_order = {"bKash": 1, "Nagad": 2, "Rocket": 3, "Binance": 4}
     submitter_data.sort(key=lambda x: (payment_order.get(x["payment"], 999), -x["total_rows"]))
     
-    # Create DataFrame
     df = pd.DataFrame(submitter_data)
     
-    # Save to file
     data_file = f"payment_list_{m.chat.id}.xlsx"
     try:
         df.to_excel(data_file, index=False)
@@ -915,13 +1086,11 @@ def m_payment_list(m):
         data_file = f"payment_list_{m.chat.id}.csv"
         df.to_csv(data_file, index=False, encoding='utf-8-sig')
     
-    # Calculate totals
     total_submitters = len(submitter_data)
     total_files = sum(d["total_files"] for d in submitter_data)
     total_rows = sum(d["total_rows"] for d in submitter_data)
     total_ok = sum(d["ok"] for d in submitter_data)
     
-    # Count by payment method
     bkash_count = len([x for x in submitter_data if x["payment"] == "bKash"])
     nagad_count = len([x for x in submitter_data if x["payment"] == "Nagad"])
     rocket_count = len([x for x in submitter_data if x["payment"] == "Rocket"])
@@ -945,13 +1114,12 @@ def m_payment_list(m):
         master_bot.send_document(
             m.chat.id, 
             f, 
-            caption=f"📊 PAYMENT LIST (Grouped by Payment Method)\n\nColumns: submitted_by, payment, number, total_files, total_rows, ok"
+            caption=f"📊 PAYMENT LIST (Grouped by Payment Method)"
         )
     
     os.remove(data_file)
 
-
-# ================= 💳 [ 5.4 PAYMENT LIST SCANNER ] =================
+# ================= 💳 [ 5.3 PAYMENT LIST SCANNER ] =================
 
 @master_bot.message_handler(func=lambda m: m.text == "💳 Payment List Scanner")
 def m_payment_scanner(m):
@@ -960,9 +1128,9 @@ def m_payment_scanner(m):
     
     kb = types.InlineKeyboardMarkup(row_width=2)
     kb.add(
-        types.InlineKeyboardButton("📁 IG Cookies", callback_data="scan_type_ig_cookies"),
-        types.InlineKeyboardButton("🔐 IG 2FA", callback_data="scan_type_ig_2fa"),
-        types.InlineKeyboardButton("📘 FB 0FD 2FA", callback_data="scan_type_fb_0fd_2fa"),
+        types.InlineKeyboardButton(f"{get_type_icon('ig_cookies')} {get_type_display_name('ig_cookies')}", callback_data="scan_type_ig_cookies"),
+        types.InlineKeyboardButton(f"{get_type_icon('ig_2fa')} {get_type_display_name('ig_2fa')}", callback_data="scan_type_ig_2fa"),
+        types.InlineKeyboardButton(f"{get_type_icon('fb_0fd_2fa')} {get_type_display_name('fb_0fd_2fa')}", callback_data="scan_type_fb_0fd_2fa"),
         types.InlineKeyboardButton("❌ Cancel", callback_data="scan_type_cancel")
     )
     
@@ -973,7 +1141,6 @@ def m_payment_scanner(m):
         parse_mode="Markdown",
         reply_markup=kb
     )
-
 
 @master_bot.callback_query_handler(func=lambda c: c.data.startswith("scan_type_"))
 def m_scan_type_callback(c):
@@ -990,13 +1157,7 @@ def m_scan_type_callback(c):
         return
     
     scan_type = c.data.replace("scan_type_", "")
-    
-    type_names = {
-        "ig_cookies": "📁 IG Cookies",
-        "ig_2fa": "🔐 IG 2FA", 
-        "fb_0fd_2fa": "📘 FB 0FD 2FA"
-    }
-    display_type = type_names.get(scan_type, scan_type)
+    display_type = get_type_display_name(scan_type)
     
     user_sessions[c.message.chat.id] = {"scan_type": scan_type}
     
@@ -1014,7 +1175,6 @@ def m_scan_type_callback(c):
     )
     
     master_bot.register_next_step_handler_by_chat_id(c.message.chat.id, scan_ok_list)
-
 
 def scan_ok_list(m):
     global current_ok_data
@@ -1052,16 +1212,12 @@ def scan_ok_list(m):
         master_bot.send_message(m.chat.id, "❌ No data found in TXT file!")
         return
     
-    type_display = {
-        "ig_cookies": "📁 IG Cookies",
-        "ig_2fa": "🔐 IG 2FA",
-        "fb_0fd_2fa": "📘 FB 0FD 2FA"
-    }
+    display_type = get_type_display_name(scan_type)
     
     status_msg = master_bot.send_message(
         m.chat.id, 
         f"⏳ *Scanning started...*\n\n"
-        f"📂 Type: {type_display.get(scan_type, scan_type)}\n"
+        f"📂 Type: {display_type}\n"
         f"📊 OK List: {len(ok_list)} users\n\n"
         f"🔍 Searching for matches...",
         parse_mode="Markdown"
@@ -1114,7 +1270,7 @@ def scan_ok_list(m):
         master_bot.send_message(
             m.chat.id,
             f"❌ *NO MATCHES FOUND!*\n\n"
-            f"📂 Type: {type_display.get(scan_type, scan_type)}\n"
+            f"📂 Type: {display_type}\n"
             f"📊 Checked: {len(ok_list)} users\n"
             f"📁 Files scanned: {total_files}\n"
             f"📊 Data scanned: {total_user_data}\n"
@@ -1126,7 +1282,7 @@ def scan_ok_list(m):
     total_ok_count = current_ok_data['total_ok']
     
     summary = f"✅ *SCAN COMPLETE!*\n\n"
-    summary += f"📂 *Type:* {type_display.get(scan_type, scan_type)}\n"
+    summary += f"📂 *Type:* {display_type}\n"
     summary += f"📊 *OK List:* {len(ok_list)} users\n"
     summary += f"📁 *Files Scanned:* {total_files}\n"
     summary += f"📊 *Total Data Scanned:* {total_user_data}\n"
@@ -1138,8 +1294,7 @@ def scan_ok_list(m):
     
     master_bot.send_message(m.chat.id, summary, parse_mode="Markdown")
 
-
-# ================= 🎛️ [ 5.5 TYPE CONTROL ] =================
+# ================= 🎛️ [ 5.4 TYPE CONTROL ] =================
 
 @master_bot.message_handler(func=lambda m: m.text == "🎛️ Type Control")
 def m_type_control(m):
@@ -1148,9 +1303,9 @@ def m_type_control(m):
     
     kb = types.InlineKeyboardMarkup(row_width=1)
     kb.add(
-        types.InlineKeyboardButton(f"{'🟢' if type_status['ig_cookies'] else '🔴'} IG Cookies", callback_data="toggle_ig_cookies"),
-        types.InlineKeyboardButton(f"{'🟢' if type_status['ig_2fa'] else '🔴'} IG 2FA", callback_data="toggle_ig_2fa"),
-        types.InlineKeyboardButton(f"{'🟢' if type_status['fb_0fd_2fa'] else '🔴'} FB 0FD 2FA", callback_data="toggle_fb_0fd_2fa"),
+        types.InlineKeyboardButton(f"{'🟢' if type_status['ig_cookies'] else '🔴'} {get_type_display_name('ig_cookies')}", callback_data="toggle_ig_cookies"),
+        types.InlineKeyboardButton(f"{'🟢' if type_status['ig_2fa'] else '🔴'} {get_type_display_name('ig_2fa')}", callback_data="toggle_ig_2fa"),
+        types.InlineKeyboardButton(f"{'🟢' if type_status['fb_0fd_2fa'] else '🔴'} {get_type_display_name('fb_0fd_2fa')}", callback_data="toggle_fb_0fd_2fa"),
         types.InlineKeyboardButton("🔙 Back", callback_data="back_to_menu")
     )
     
@@ -1160,7 +1315,6 @@ def m_type_control(m):
         parse_mode="Markdown",
         reply_markup=kb
     )
-
 
 @master_bot.callback_query_handler(func=lambda c: c.data.startswith("toggle_"))
 def m_toggle_type(c):
@@ -1172,13 +1326,13 @@ def m_toggle_type(c):
     type_status[type_name] = not type_status.get(type_name, True)
     
     status_text = "ON 🟢" if type_status[type_name] else "OFF 🔴"
-    master_bot.answer_callback_query(c.id, f"{type_name} is now {status_text}")
+    master_bot.answer_callback_query(c.id, f"{get_type_display_name(type_name)} is now {status_text}")
     
     kb = types.InlineKeyboardMarkup(row_width=1)
     kb.add(
-        types.InlineKeyboardButton(f"{'🟢' if type_status['ig_cookies'] else '🔴'} IG Cookies", callback_data="toggle_ig_cookies"),
-        types.InlineKeyboardButton(f"{'🟢' if type_status['ig_2fa'] else '🔴'} IG 2FA", callback_data="toggle_ig_2fa"),
-        types.InlineKeyboardButton(f"{'🟢' if type_status['fb_0fd_2fa'] else '🔴'} FB 0FD 2FA", callback_data="toggle_fb_0fd_2fa"),
+        types.InlineKeyboardButton(f"{'🟢' if type_status['ig_cookies'] else '🔴'} {get_type_display_name('ig_cookies')}", callback_data="toggle_ig_cookies"),
+        types.InlineKeyboardButton(f"{'🟢' if type_status['ig_2fa'] else '🔴'} {get_type_display_name('ig_2fa')}", callback_data="toggle_ig_2fa"),
+        types.InlineKeyboardButton(f"{'🟢' if type_status['fb_0fd_2fa'] else '🔴'} {get_type_display_name('fb_0fd_2fa')}", callback_data="toggle_fb_0fd_2fa"),
         types.InlineKeyboardButton("🔙 Back", callback_data="back_to_menu")
     )
     
@@ -1190,16 +1344,15 @@ def m_toggle_type(c):
     master_bot.send_message(
         c.message.chat.id,
         f"🎛️ *TYPE CONTROL PANEL*\n\n"
-        f"🟢 IG Cookies: {'ON' if type_status['ig_cookies'] else 'OFF'}\n"
-        f"🟢 IG 2FA: {'ON' if type_status['ig_2fa'] else 'OFF'}\n"
-        f"🟢 FB 0FD 2FA: {'ON' if type_status['fb_0fd_2fa'] else 'OFF'}\n\n"
+        f"🟢 {get_type_display_name('ig_cookies')}: {'ON' if type_status['ig_cookies'] else 'OFF'}\n"
+        f"🟢 {get_type_display_name('ig_2fa')}: {'ON' if type_status['ig_2fa'] else 'OFF'}\n"
+        f"🟢 {get_type_display_name('fb_0fd_2fa')}: {'ON' if type_status['fb_0fd_2fa'] else 'OFF'}\n\n"
         f"Click to toggle:",
         parse_mode="Markdown",
         reply_markup=kb
     )
 
-
-# ================= 📊 [ 5.6 TOTAL STATS ] =================
+# ================= 📊 [ 5.5 TOTAL STATS ] =================
 
 @master_bot.message_handler(func=lambda m: m.text == "📊 Total Stats")
 def m_stats(m):
@@ -1221,16 +1374,15 @@ def m_stats(m):
         f"🤖 Bots: {len(db['tokens'])}\n"
         f"👥 Users: {len(user_ids)}\n"
         f"📁 Files: {total_files}\n"
-        f"📊 Total Records (unique user+pass+2fa): {global_unique_count}\n\n"
+        f"📊 Total Records (unique): {global_unique_count}\n\n"
         f"🎛️ *Type Status:*\n"
-        f"IG Cookies: {'🟢 ON' if type_status['ig_cookies'] else '🔴 OFF'}\n"
-        f"IG 2FA: {'🟢 ON' if type_status['ig_2fa'] else '🔴 OFF'}\n"
-        f"FB 0FD 2FA: {'🟢 ON' if type_status['fb_0fd_2fa'] else '🔴 OFF'}"
+        f"{get_type_icon('ig_cookies')} {get_type_display_name('ig_cookies')}: {'🟢 ON' if type_status['ig_cookies'] else '🔴 OFF'}\n"
+        f"{get_type_icon('ig_2fa')} {get_type_display_name('ig_2fa')}: {'🟢 ON' if type_status['ig_2fa'] else '🔴 OFF'}\n"
+        f"{get_type_icon('fb_0fd_2fa')} {get_type_display_name('fb_0fd_2fa')}: {'🟢 ON' if type_status['fb_0fd_2fa'] else '🔴 OFF'}"
     )
     master_bot.send_message(m.chat.id, stats_msg, parse_mode="Markdown")
 
-
-# ================= 📁 [ 5.7 DOWNLOAD BY TYPE ] =================
+# ================= 📁 [ 5.6 DOWNLOAD BY TYPE ] =================
 
 @master_bot.message_handler(func=lambda m: m.text == "📁 Download by Type")
 def m_download_by_type(m):
@@ -1239,13 +1391,12 @@ def m_download_by_type(m):
     
     kb = types.InlineKeyboardMarkup(row_width=2)
     kb.add(
-        types.InlineKeyboardButton("📁 IG Cookies", callback_data="dltype_ig_cookies"),
-        types.InlineKeyboardButton("🔐 IG 2FA", callback_data="dltype_ig_2fa"),
-        types.InlineKeyboardButton("📘 FB 0FD 2FA", callback_data="dltype_fb_0fd_2fa"),
+        types.InlineKeyboardButton(f"{get_type_icon('ig_cookies')} {get_type_display_name('ig_cookies')}", callback_data="dltype_ig_cookies"),
+        types.InlineKeyboardButton(f"{get_type_icon('ig_2fa')} {get_type_display_name('ig_2fa')}", callback_data="dltype_ig_2fa"),
+        types.InlineKeyboardButton(f"{get_type_icon('fb_0fd_2fa')} {get_type_display_name('fb_0fd_2fa')}", callback_data="dltype_fb_0fd_2fa"),
         types.InlineKeyboardButton("❌ Cancel", callback_data="dltype_cancel")
     )
     master_bot.send_message(m.chat.id, "Select type:", reply_markup=kb)
-
 
 @master_bot.callback_query_handler(func=lambda c: c.data.startswith("dltype_"))
 def m_download_type_callback(c):
@@ -1260,8 +1411,7 @@ def m_download_type_callback(c):
     file_type = c.data.replace("dltype_", "")
     db = load_db()
     
-    type_names = {"ig_cookies": "IG Cookies", "ig_2fa": "IG 2FA", "fb_0fd_2fa": "FB 0FD 2FA"}
-    display_type = type_names.get(file_type, file_type)
+    display_type = get_type_display_name(file_type)
     
     all_unique_data = db["all_unique_data"].get(file_type, {})
     
@@ -1325,14 +1475,222 @@ def m_download_type_callback(c):
         master_bot.send_document(
             c.message.chat.id, 
             f, 
-            caption=f"📊 {display_type}\n📋 All user data\n\nColumns: user, pass, 2fa, submitted_by, submitted_at\n\nTotal rows: {total_rows}\nRows with 2FA: {rows_with_2fa}"
+            caption=f"📊 {display_type}\n📋 All user data\n\nTotal rows: {total_rows}\nRows with 2FA: {rows_with_2fa}"
         )
     
     os.remove(data_file)
     master_bot.answer_callback_query(c.id, f"{display_type} data sent!")
 
+# ================= 🗑 [ 5.7 CLEAR DATA - TYPE WISE ] =================
 
-# ================= ➕ [ 5.8 ADD/REMOVE BOT (More Options) ] =================
+@master_bot.message_handler(func=lambda m: m.text == "🗑 Clear Data")
+def m_clear_data(m):
+    if m.from_user.id not in ADMIN_IDS:
+        return
+    
+    kb = types.InlineKeyboardMarkup(row_width=2)
+    kb.add(
+        types.InlineKeyboardButton(f"{get_type_icon('ig_cookies')} {get_type_display_name('ig_cookies')}", callback_data="clear_ig_cookies"),
+        types.InlineKeyboardButton(f"{get_type_icon('ig_2fa')} {get_type_display_name('ig_2fa')}", callback_data="clear_ig_2fa"),
+        types.InlineKeyboardButton(f"{get_type_icon('fb_0fd_2fa')} {get_type_display_name('fb_0fd_2fa')}", callback_data="clear_fb_0fd_2fa"),
+        types.InlineKeyboardButton("🗑 Clear All", callback_data="clear_all"),
+        types.InlineKeyboardButton("❌ Cancel", callback_data="clear_cancel")
+    )
+    
+    master_bot.send_message(
+        m.chat.id,
+        "🗑 *CLEAR DATA*\n\nSelect which type to clear:",
+        parse_mode="Markdown",
+        reply_markup=kb
+    )
+
+@master_bot.callback_query_handler(func=lambda c: c.data.startswith("clear_"))
+def m_clear_callback(c):
+    if c.from_user.id not in ADMIN_IDS:
+        master_bot.answer_callback_query(c.id, "❌ Unauthorized!")
+        return
+    
+    if c.data == "clear_cancel":
+        try:
+            master_bot.delete_message(c.message.chat.id, c.message.message_id)
+        except:
+            pass
+        master_bot.send_message(c.message.chat.id, "❌ Cancelled.")
+        return
+    
+    db = load_db()
+    
+    if c.data == "clear_all":
+        for file_type in ["ig_cookies", "ig_2fa", "fb_0fd_2fa"]:
+            db["files"][file_type] = {}
+            db["all_unique_data"][file_type] = {}
+            
+            folder_path = f"uploads/{file_type}"
+            if os.path.exists(folder_path):
+                for f in os.listdir(folder_path):
+                    try:
+                        os.remove(os.path.join(folder_path, f))
+                    except:
+                        pass
+        
+        db["global_unique_keys"] = []
+        save_db(db)
+        
+        try:
+            master_bot.delete_message(c.message.chat.id, c.message.message_id)
+        except:
+            pass
+        
+        master_bot.send_message(c.message.chat.id, "✅ *ALL DATA CLEARED!*", parse_mode="Markdown")
+        return
+    
+    # Clear specific type
+    type_to_clear = c.data.replace("clear_", "")
+    display_name = get_type_display_name(type_to_clear)
+    
+    db["files"][type_to_clear] = {}
+    db["all_unique_data"][type_to_clear] = {}
+    
+    folder_path = f"uploads/{type_to_clear}"
+    if os.path.exists(folder_path):
+        for f in os.listdir(folder_path):
+            try:
+                os.remove(os.path.join(folder_path, f))
+            except:
+                pass
+    
+    # Update global unique keys
+    all_keys = set()
+    for file_type in ["ig_cookies", "ig_2fa", "fb_0fd_2fa"]:
+        if file_type != type_to_clear:
+            for item in db["all_unique_data"][file_type].values():
+                if "data" in item:
+                    for row in item["data"]:
+                        key = f"{row.get('user', '')}_{row.get('pass', '')}_{row.get('2fa', '')}".lower()
+                        if key:
+                            all_keys.add(key)
+    db["global_unique_keys"] = list(all_keys)
+    
+    save_db(db)
+    
+    try:
+        master_bot.delete_message(c.message.chat.id, c.message.message_id)
+    except:
+        pass
+    
+    master_bot.send_message(
+        c.message.chat.id, 
+        f"✅ *{display_name} DATA CLEARED!*", 
+        parse_mode="Markdown"
+    )
+
+# ================= 💳 [ 5.8 USER PAYMENTS ] =================
+
+@master_bot.message_handler(func=lambda m: m.text == "💳 User Payments")
+def m_user_payments(m):
+    if m.from_user.id not in ADMIN_IDS:
+        return
+    
+    db = load_db()
+    user_payments = db.get("user_payment_settings", {})
+    
+    if not user_payments:
+        master_bot.send_message(
+            m.chat.id, 
+            "❌ *No user payment data found!*", 
+            parse_mode="Markdown"
+        )
+        return
+    
+    payment_data = []
+    for user_id, payment_info in user_payments.items():
+        payment_data.append({
+            "User ID": user_id,
+            "Method": payment_info.get("payment_method", "N/A"),
+            "Number": payment_info.get("payment_number", "N/A")
+        })
+    
+    df = pd.DataFrame(payment_data)
+    data_file = f"user_payments_{m.chat.id}.xlsx"
+    try:
+        df.to_excel(data_file, index=False)
+    except:
+        data_file = f"user_payments_{m.chat.id}.csv"
+        df.to_csv(data_file, index=False, encoding='utf-8-sig')
+    
+    bkash = len([p for p in payment_data if p["Method"] == "bKash"])
+    nagad = len([p for p in payment_data if p["Method"] == "Nagad"])
+    rocket = len([p for p in payment_data if p["Method"] == "Rocket"])
+    binance = len([p for p in payment_data if p["Method"] == "Binance"])
+    unknown = len([p for p in payment_data if p["Method"] == "N/A"])
+    
+    summary = f"💳 *USER PAYMENT REPORT*\n\n"
+    summary += f"👥 Total Users: {len(payment_data)}\n"
+    summary += f"━━━━━━━━━━━━━━━━━━━━\n"
+    summary += f"🏦 bKash: {bkash} users\n"
+    summary += f"🏧 Nagad: {nagad} users\n"
+    summary += f"💳 Rocket: {rocket} users\n"
+    summary += f"₿ Binance: {binance} users\n"
+    summary += f"❓ Unknown: {unknown} users\n\n"
+    summary += f"📥 Downloading file..."
+    
+    master_bot.send_message(m.chat.id, summary, parse_mode="Markdown")
+    
+    with open(data_file, "rb") as f:
+        master_bot.send_document(
+            m.chat.id, 
+            f, 
+            caption=f"📊 USER PAYMENT LIST\n\nUser ID, Payment Method, Payment Number"
+        )
+    
+    os.remove(data_file)
+
+# ================= 🔍 [ 5.9 SEARCH USER ] =================
+
+@master_bot.message_handler(func=lambda m: m.text == "🔍 Search User")
+def m_search_user(m):
+    if m.from_user.id not in ADMIN_IDS:
+        return
+    
+    msg = master_bot.send_message(
+        m.chat.id, 
+        "🔍 *Enter User ID:*\n\n"
+        "Type the User ID to search:\n"
+        "Send /cancel to cancel",
+        parse_mode="Markdown"
+    )
+    master_bot.register_next_step_handler(msg, search_user_payment)
+
+def search_user_payment(m):
+    if m.from_user.id not in ADMIN_IDS:
+        return
+    
+    if m.text and m.text.startswith('/cancel'):
+        master_bot.send_message(m.chat.id, "❌ Cancelled.")
+        return
+    
+    search_query = m.text.strip()
+    
+    db = load_db()
+    user_payments = db.get("user_payment_settings", {})
+    
+    if search_query in user_payments:
+        payment = user_payments[search_query]
+        
+        result_text = f"🔍 *User Found!*\n\n"
+        result_text += f"👤 *User ID:* `{search_query}`\n"
+        result_text += f"💳 *Method:* {payment.get('payment_method', 'N/A')}\n"
+        result_text += f"📱 *Number:* `{payment.get('payment_number', 'N/A')}`\n"
+        
+        master_bot.send_message(m.chat.id, result_text, parse_mode="Markdown")
+    else:
+        master_bot.send_message(
+            m.chat.id, 
+            f"❌ *No user found with ID:* `{search_query}`",
+            parse_mode="Markdown"
+        )
+
+# ================= ➕ [ 5.10 ADD/REMOVE BOT ] =================
 
 @master_bot.message_handler(func=lambda m: m.text == "➕ Add Bot")
 def m_add_bot(m):
@@ -1341,7 +1699,6 @@ def m_add_bot(m):
     
     msg = master_bot.send_message(m.chat.id, "🤖 *Send Bot Token:*", parse_mode="Markdown")
     master_bot.register_next_step_handler(msg, save_bot_token)
-
 
 def save_bot_token(m):
     if m.text.startswith('/'):
@@ -1362,7 +1719,6 @@ def save_bot_token(m):
     else:
         master_bot.send_message(m.chat.id, "⚠️ Bot already exists!")
 
-
 @master_bot.message_handler(func=lambda m: m.text == "❌ Remove Bot")
 def m_remove_bot(m):
     if m.from_user.id not in ADMIN_IDS:
@@ -1378,7 +1734,6 @@ def m_remove_bot(m):
         kb.add(types.InlineKeyboardButton(f"🤖 Bot {i+1}", callback_data=f"remove_{i}"))
     kb.add(types.InlineKeyboardButton("❌ Cancel", callback_data="remove_cancel"))
     master_bot.send_message(m.chat.id, "Select bot:", reply_markup=kb)
-
 
 @master_bot.callback_query_handler(func=lambda c: c.data.startswith("remove_"))
 def m_remove_callback(c):
@@ -1405,86 +1760,7 @@ def m_remove_callback(c):
         
         master_bot.send_message(c.message.chat.id, f"✅ Bot removed")
 
-
-# ================= 🗑 [ 5.9 CLEAR ALL DATA ] =================
-
-@master_bot.message_handler(func=lambda m: m.text == "🗑 Clear All Data")
-def m_clear_all(m):
-    if m.from_user.id not in ADMIN_IDS:
-        return
-    
-    kb = types.InlineKeyboardMarkup()
-    kb.row(
-        types.InlineKeyboardButton("⚠️ YES", callback_data="confirm_clear_all"),
-        types.InlineKeyboardButton("❌ NO", callback_data="cancel_clear_all")
-    )
-    
-    master_bot.send_message(m.chat.id, "⚠️ *DELETE ALL DATA?*", parse_mode="Markdown", reply_markup=kb)
-
-
-@master_bot.callback_query_handler(func=lambda c: c.data == "confirm_clear_all")
-def m_confirm_clear(c):
-    if c.from_user.id not in ADMIN_IDS:
-        return
-    
-    for folder in ["ig_cookies", "ig_2fa", "fb_0fd_2fa"]:
-        folder_path = f"uploads/{folder}"
-        if os.path.exists(folder_path):
-            for f in os.listdir(folder_path):
-                try:
-                    os.remove(os.path.join(folder_path, f))
-                except:
-                    pass
-    
-    dup_folder = "duplicate_files"
-    if os.path.exists(dup_folder):
-        for f in os.listdir(dup_folder):
-            try:
-                os.remove(os.path.join(dup_folder, f))
-            except:
-                pass
-    
-    backup_folder = "backup"
-    if os.path.exists(backup_folder):
-        for f in os.listdir(backup_folder):
-            try:
-                os.remove(os.path.join(backup_folder, f))
-            except:
-                pass
-    
-    db = load_db()
-    db["files"] = {"ig_cookies": {}, "ig_2fa": {}, "fb_0fd_2fa": {}}
-    db["all_unique_data"] = {"ig_cookies": {}, "ig_2fa": {}, "fb_0fd_2fa": {}}
-    db["global_unique_keys"] = []
-    save_db(db)
-    
-    global current_ok_data
-    current_ok_data = {
-        "total_ok": 0,
-        "total_users": 0,
-        "last_scan_time": None,
-        "results": {},
-        "scan_type": None
-    }
-    
-    try:
-        master_bot.delete_message(c.message.chat.id, c.message.message_id)
-    except:
-        pass
-    
-    master_bot.send_message(c.message.chat.id, "✅ *ALL DATA DELETED!*", parse_mode="Markdown")
-
-
-@master_bot.callback_query_handler(func=lambda c: c.data == "cancel_clear_all")
-def m_cancel_clear(c):
-    try:
-        master_bot.delete_message(c.message.chat.id, c.message.message_id)
-    except:
-        pass
-    master_bot.send_message(c.message.chat.id, "❌ Cancelled", parse_mode="Markdown")
-
-
-# ================= 🔄 [ 5.10 RESET ALL TYPES ] =================
+# ================= 🔄 [ 5.11 RESET ALL TYPES ] =================
 
 @master_bot.message_handler(func=lambda m: m.text == "🔄 Reset All Types")
 def m_reset_types(m):
@@ -1500,8 +1776,7 @@ def m_reset_types(m):
     
     master_bot.send_message(m.chat.id, "✅ *All types reset to ON!*", parse_mode="Markdown")
 
-
-# ================= 🔄 [ 5.11 BACK TO MENU CALLBACK ] =================
+# ================= 🔄 [ 5.12 BACK TO MENU CALLBACK ] =================
 
 @master_bot.callback_query_handler(func=lambda c: c.data == "back_to_menu")
 def m_back_to_menu(c):
@@ -1523,14 +1798,13 @@ def m_back_to_menu(c):
         c.message.chat.id,
         f"👑 *MASTER ADMIN PANEL* 👑\n\n"
         f"🎛️ *Current Status:*\n"
-        f"🟢 IG Cookies: {'ON' if type_status['ig_cookies'] else 'OFF'}\n"
-        f"🟢 IG 2FA: {'ON' if type_status['ig_2fa'] else 'OFF'}\n"
-        f"🟢 FB 0FD 2FA: {'ON' if type_status['fb_0fd_2fa'] else 'OFF'}\n\n"
+        f"🟢 {get_type_display_name('ig_cookies')}: {'ON' if type_status['ig_cookies'] else 'OFF'}\n"
+        f"🟢 {get_type_display_name('ig_2fa')}: {'ON' if type_status['ig_2fa'] else 'OFF'}\n"
+        f"🟢 {get_type_display_name('fb_0fd_2fa')}: {'ON' if type_status['fb_0fd_2fa'] else 'OFF'}\n\n"
         f"📌 Select an option below",
         parse_mode="Markdown",
         reply_markup=kb
     )
-
 
 # ================= 🔄 [ 6. MAIN ] =================
 
@@ -1543,16 +1817,16 @@ def run_all_bots():
             threading.Thread(target=start_user_bot, args=(token,), daemon=True).start()
             time.sleep(2)
 
-
 if __name__ == "__main__":
     print("=" * 50)
-    print("👑 ID RECEIVER SYSTEM v17.0")
-    print("🎛️ CASE-INSENSITIVE COLUMN MATCHING")
-    print("🎛️ 3-COLUMN DUPLICATE CHECK (user+pass+2fa)")
-    print("🎛️ RAILWAY ENVIRONMENT VARIABLES")
+    print("👑 ID RECEIVER SYSTEM v18.0")
+    print("🎛️ COMPLETE AUTO-DETECTION")
+    print("🎛️ NO COLUMN NAMES REQUIRED")
+    print("🎛️ AUTO PAYMENT SAVE")
+    print("🎛️ TYPE-WISE CLEAR DATA")
+    print("🎛️ CUSTOM TYPE NAMES")
     print("=" * 50)
     
-    # Check if token is available
     if not MASTER_ADMIN_TOKEN:
         print("❌ ERROR: MASTER_ADMIN_TOKEN not found in environment variables!")
         print("📌 Please set MASTER_ADMIN_TOKEN in Railway Variables")
