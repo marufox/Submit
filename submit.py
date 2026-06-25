@@ -861,7 +861,7 @@ def back_to_main_menu(m):
         reply_markup=kb
     )
 
-# ================= 📢 [ BROADCAST - SIMPLE VERSION ] =================
+# ================= 📢 [ BROADCAST - MASS USER SUPPORT ] =================
 
 @master_bot.message_handler(func=lambda m: m.text == "📢 Broadcast")
 def m_broadcast(m):
@@ -889,7 +889,7 @@ def m_broadcast(m):
     
     kb = types.InlineKeyboardMarkup(row_width=1)
     kb.add(
-        types.InlineKeyboardButton("📤 Send Message", callback_data="broadcast_send"),
+        types.InlineKeyboardButton("📝 Send Message", callback_data="broadcast_text"),
         types.InlineKeyboardButton("🔙 Back", callback_data="broadcast_back")
     )
     
@@ -898,13 +898,19 @@ def m_broadcast(m):
         f"📢 *BROADCAST*\n\n"
         f"🤖 Active Bots: {len(active_bots)}\n"
         f"👥 Total Users: {len(user_ids)}\n\n"
-        f"📌 Send anything:\n"
-        f"• Text with formatting\n"
-        f"• Photo with caption\n"
-        f"• Video with caption\n"
-        f"• Document with caption\n"
-        f"• Audio with caption\n"
-        f"• Link (auto-detect)\n\n"
+        f"📌 Send your message with:\n"
+        f"• *Bold text*\n"
+        f"• _Italic text_\n"
+        f"• __Underline__\n"
+        f"• ~Strikethrough~\n"
+        f"• [Links](https://t.me/username)\n"
+        f"• Emojis 😊🎉✅‼️\n\n"
+        f"📌 Auto added to every message:\n"
+        f"```\n"
+        f"‼️ ATTENTION ‼️\n\n"
+        f"[Your Message]\n\n"
+        f"Thanks by MAX FUTURE ✅\n"
+        f"```\n\n"
         f"Click below to start:",
         parse_mode="Markdown",
         reply_markup=kb
@@ -945,27 +951,33 @@ def broadcast_callback(c):
         back_to_main_menu(c)
         return
     
-    if c.data == "broadcast_send":
+    if c.data == "broadcast_text":
         msg = master_bot.send_message(
             c.message.chat.id,
-            "📤 *Send your message*\n\n"
-            "✅ Supports everything:\n"
-            "• *Bold*, _Italic_, __Underline__, ~Strikethrough~\n"
-            "• [Links](https://t.me/username)\n"
-            "• Emojis 😊🎉✅\n"
-            "• Photos with caption\n"
-            "• Videos with caption\n"
-            "• Documents with caption\n"
-            "• Audio with caption\n"
-            "• Any file\n\n"
-            "📌 Just send whatever you want to broadcast!\n"
+            "📝 *Send your message*\n\n"
+            "✅ Supports:\n"
+            "• *Bold text*\n"
+            "• _Italic text_\n"
+            "• __Underline__\n"
+            "• ~Strikethrough~\n"
+            "• [Clickable Links](https://t.me/username)\n"
+            "• Emojis 😊🎉✅‼️\n"
+            "• Code `inline code`\n"
+            "• Multiple lines\n\n"
+            "📌 Your message will be sent with:\n"
+            "```\n"
+            "‼️ ATTENTION ‼️\n\n"
+            "[Your Message]\n\n"
+            "Thanks by MAX FUTURE ✅\n"
+            "```\n\n"
+            f"👥 Will be sent to {len(load_user_ids())} users\n\n"
             "Send /cancel to cancel:",
             parse_mode="Markdown"
         )
-        master_bot.register_next_step_handler(msg, process_broadcast_smart)
+        master_bot.register_next_step_handler(msg, send_text_broadcast)
 
-def process_broadcast_smart(m):
-    """Smart broadcast - auto detects what was sent"""
+def send_text_broadcast(m):
+    """Send text broadcast with auto footer - MASS USER SUPPORT"""
     if m.from_user.id not in ADMIN_IDS:
         return
     
@@ -973,75 +985,40 @@ def process_broadcast_smart(m):
         master_bot.send_message(m.chat.id, "❌ Broadcast cancelled.")
         return
     
-    # Get users
+    try:
+        master_bot.delete_message(m.chat.id, m.message_id)
+    except:
+        pass
+    
+    # Get user's message
+    user_message = m.text
+    
+    # Auto add header and footer
+    final_message = f"""‼️ *ATTENTION* ‼️
+
+{user_message}
+
+Thanks by *MAX FUTURE* 💝"""
+    
     user_ids = load_user_ids()
+    
     if not user_ids:
         master_bot.send_message(m.chat.id, "❌ No users found!")
         return
     
-    # Check active bots
     if not active_bots:
         master_bot.send_message(
-            m.chat.id,
-            "❌ *No active user bots!*",
+            m.chat.id, 
+            "❌ *No active user bots!*\n\nPlease add a bot first:\n⚙️ More Options → ➕ Add Bot",
             parse_mode="Markdown"
         )
         return
     
-    # Detect what type of content was sent
-    content_type = "text"
-    content_data = None
-    
-    if m.text:
-        content_type = "text"
-        content_data = {
-            "text": m.text,
-            "entities": m.entities
-        }
-    elif m.photo:
-        content_type = "photo"
-        content_data = {
-            "file_id": m.photo[-1].file_id,
-            "caption": m.caption
-        }
-    elif m.video:
-        content_type = "video"
-        content_data = {
-            "file_id": m.video.file_id,
-            "caption": m.caption
-        }
-    elif m.document:
-        content_type = "document"
-        content_data = {
-            "file_id": m.document.file_id,
-            "caption": m.caption
-        }
-    elif m.audio:
-        content_type = "audio"
-        content_data = {
-            "file_id": m.audio.file_id,
-            "caption": m.caption
-        }
-    elif m.voice:
-        content_type = "voice"
-        content_data = {
-            "file_id": m.voice.file_id,
-            "caption": m.caption
-        }
-    elif m.animation:
-        content_type = "animation"
-        content_data = {
-            "file_id": m.animation.file_id,
-            "caption": m.caption
-        }
-    else:
-        master_bot.send_message(m.chat.id, "❌ Unsupported content type!")
-        return
-    
-    # Show status
+    total_users = len(user_ids)
     status_msg = master_bot.send_message(
-        m.chat.id,
-        f"⏳ *Sending {content_type} to {len(user_ids)} users...*",
+        m.chat.id, 
+        f"⏳ *Sending to {total_users} users...*\n\n"
+        f"🤖 Active bots: {len(active_bots)}",
         parse_mode="Markdown"
     )
     
@@ -1050,90 +1027,37 @@ def process_broadcast_smart(m):
     failed_users = []
     bot_tokens = list(active_bots)
     
-    # Send to all users
+    # Send to all users with progress update
     for idx, user_id in enumerate(user_ids):
         sent = False
         for bot_token in bot_tokens:
             try:
                 bot = telebot.TeleBot(bot_token)
-                
-                if content_type == "text":
-                    bot.send_message(
-                        user_id,
-                        content_data["text"],
-                        parse_mode="Markdown",
-                        entities=content_data["entities"],
-                        disable_web_page_preview=False
-                    )
-                
-                elif content_type == "photo":
-                    bot.send_photo(
-                        user_id,
-                        content_data["file_id"],
-                        caption=content_data["caption"],
-                        parse_mode="Markdown"
-                    )
-                
-                elif content_type == "video":
-                    bot.send_video(
-                        user_id,
-                        content_data["file_id"],
-                        caption=content_data["caption"],
-                        parse_mode="Markdown"
-                    )
-                
-                elif content_type == "document":
-                    bot.send_document(
-                        user_id,
-                        content_data["file_id"],
-                        caption=content_data["caption"],
-                        parse_mode="Markdown"
-                    )
-                
-                elif content_type == "audio":
-                    bot.send_audio(
-                        user_id,
-                        content_data["file_id"],
-                        caption=content_data["caption"],
-                        parse_mode="Markdown"
-                    )
-                
-                elif content_type == "voice":
-                    bot.send_voice(
-                        user_id,
-                        content_data["file_id"],
-                        caption=content_data["caption"],
-                        parse_mode="Markdown"
-                    )
-                
-                elif content_type == "animation":
-                    bot.send_animation(
-                        user_id,
-                        content_data["file_id"],
-                        caption=content_data["caption"],
-                        parse_mode="Markdown"
-                    )
-                
+                bot.send_message(
+                    user_id, 
+                    final_message, 
+                    parse_mode="Markdown",
+                    disable_web_page_preview=False
+                )
                 success += 1
                 sent = True
                 break
-                
             except Exception as e:
-                print(f"❌ Failed for {user_id}: {e}")
+                print(f"Failed for {user_id}: {e}")
                 continue
         
         if not sent:
             fail += 1
             failed_users.append(user_id)
         
-        # Update progress every 20 users
-        if (idx + 1) % 20 == 0:
+        # Update progress every 50 users
+        if (idx + 1) % 50 == 0 or (idx + 1) == total_users:
             try:
                 master_bot.edit_message_text(
                     f"⏳ *Sending...*\n\n"
                     f"📤 Sent: {success}\n"
                     f"❌ Failed: {fail}\n"
-                    f"📊 Progress: {idx + 1}/{len(user_ids)}",
+                    f"📊 Progress: {idx + 1}/{total_users}",
                     chat_id=status_msg.chat.id,
                     message_id=status_msg.message_id,
                     parse_mode="Markdown"
@@ -1141,10 +1065,9 @@ def process_broadcast_smart(m):
             except:
                 pass
         
-        # Small delay to avoid rate limit
-        time.sleep(0.05)
+        # Small delay to avoid rate limit (Telegram allows ~30 messages/sec)
+        time.sleep(0.03)  # 30ms delay between messages
     
-    # Delete status message
     try:
         master_bot.delete_message(m.chat.id, status_msg.message_id)
     except:
@@ -1154,17 +1077,25 @@ def process_broadcast_smart(m):
     result_msg = f"✅ *Broadcast Complete!*\n\n"
     result_msg += f"📤 Success: {success}\n"
     result_msg += f"❌ Failed: {fail}\n"
-    result_msg += f"👥 Total users: {len(user_ids)}\n"
-    result_msg += f"📂 Type: {content_type.upper()}"
+    result_msg += f"👥 Total users: {total_users}"
     
     if fail > 0:
         result_msg += f"\n\n⚠️ {fail} users didn't receive the message."
         if failed_users:
-            result_msg += f"\n💡 Failed users: {failed_users[:5]}"
-            if len(failed_users) > 5:
-                result_msg += f" ... and {len(failed_users) - 5} more"
+            result_msg += f"\n💡 Failed users: {failed_users[:10]}"
+            if len(failed_users) > 10:
+                result_msg += f" ... and {len(failed_users) - 10} more"
+        
+        # Save failed users to file for retry
+        try:
+            with open(f"failed_users_{int(time.time())}.txt", "w") as f:
+                f.write("\n".join([str(uid) for uid in failed_users]))
+            result_msg += f"\n📁 Failed users saved to file."
+        except:
+            pass
     
     master_bot.send_message(m.chat.id, result_msg, parse_mode="Markdown")
+
 
 # ================= 💳 [ 5.2 PAYMENT LIST SCANNER - FIXED ] =================
 
