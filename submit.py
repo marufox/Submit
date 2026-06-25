@@ -861,7 +861,7 @@ def back_to_main_menu(m):
         reply_markup=kb
     )
 
-# ================= 📢 [ 5.1 BROADCAST - COMPLETE ] =================
+# ================= 📢 [ BROADCAST - SIMPLE VERSION ] =================
 
 @master_bot.message_handler(func=lambda m: m.text == "📢 Broadcast")
 def m_broadcast(m):
@@ -887,25 +887,25 @@ def m_broadcast(m):
         )
         return
     
-    kb = types.InlineKeyboardMarkup(row_width=2)
+    kb = types.InlineKeyboardMarkup(row_width=1)
     kb.add(
-        types.InlineKeyboardButton("📝 Text", callback_data="broadcast_text"),
-        types.InlineKeyboardButton("📷 Photo", callback_data="broadcast_photo"),
-        types.InlineKeyboardButton("🎥 Video", callback_data="broadcast_video"),
-        types.InlineKeyboardButton("📄 Document", callback_data="broadcast_document"),
-        types.InlineKeyboardButton("🎵 Audio", callback_data="broadcast_audio"),
-        types.InlineKeyboardButton("🔗 Link", callback_data="broadcast_link"),
-        types.InlineKeyboardButton("📎 File", callback_data="broadcast_file"),
-        types.InlineKeyboardButton("📊 Media Group", callback_data="broadcast_media_group"),
+        types.InlineKeyboardButton("📤 Send Message", callback_data="broadcast_send"),
         types.InlineKeyboardButton("🔙 Back", callback_data="broadcast_back")
     )
     
     master_bot.send_message(
         m.chat.id,
-        f"📢 *BROADCAST MENU*\n\n"
+        f"📢 *BROADCAST*\n\n"
         f"🤖 Active Bots: {len(active_bots)}\n"
         f"👥 Total Users: {len(user_ids)}\n\n"
-        f"Select what you want to broadcast:",
+        f"📌 Send anything:\n"
+        f"• Text with formatting\n"
+        f"• Photo with caption\n"
+        f"• Video with caption\n"
+        f"• Document with caption\n"
+        f"• Audio with caption\n"
+        f"• Link (auto-detect)\n\n"
+        f"Click below to start:",
         parse_mode="Markdown",
         reply_markup=kb
     )
@@ -945,92 +945,33 @@ def broadcast_callback(c):
         back_to_main_menu(c)
         return
     
-    # Store broadcast type in session
-    user_sessions[c.message.chat.id] = {"broadcast_type": c.data.replace("broadcast_", "")}
-    
-    # Get type name for display
-    type_names = {
-        "text": "Text Message",
-        "photo": "Photo",
-        "video": "Video",
-        "document": "Document",
-        "audio": "Audio",
-        "link": "Link",
-        "file": "File",
-        "media_group": "Media Group"
-    }
-    
-    type_display = type_names.get(c.data.replace("broadcast_", ""), "Message")
-    
-    # Show instructions based on type
-    instructions = {
-        "text": "📝 *Send your text message*\n\n"
-                "✅ Supports:\n"
-                "• *Bold text*\n"
-                "• _Italic text_\n"
-                "• [Clickable Links](https://example.com)\n"
-                "• Emojis 😊🎉\n"
-                "• Code `inline code`\n"
-                "• Telegram Links: t.me/username\n\n"
-                "Send /cancel to cancel:",
-        
-        "photo": "📷 *Send your photo*\n\n"
-                "You can add a caption with formatting.\n"
-                "Send /cancel to cancel:",
-        
-        "video": "🎥 *Send your video*\n\n"
-                "You can add a caption with formatting.\n"
-                "Send /cancel to cancel:",
-        
-        "document": "📄 *Send your document*\n\n"
-                   "You can add a caption with formatting.\n"
-                   "Send /cancel to cancel:",
-        
-        "audio": "🎵 *Send your audio*\n\n"
-                "You can add a caption with formatting.\n"
-                "Send /cancel to cancel:",
-        
-        "link": "🔗 *Send your link*\n\n"
-                "Send any link like:\n"
-                "• https://example.com\n"
-                "• t.me/username\n"
-                "• @username\n"
-                "You can add a caption too.\n\n"
-                "Send /cancel to cancel:",
-        
-        "file": "📎 *Send your file*\n\n"
-               "Any file type is supported.\n"
-               "You can add a caption with formatting.\n"
-               "Send /cancel to cancel:",
-        
-        "media_group": "📊 *Send media group*\n\n"
-                      "Send multiple photos/videos together.\n"
-                      "You can add a caption with formatting.\n"
-                      "Send /cancel to cancel:"
-    }
-    
-    msg = master_bot.send_message(
-        c.message.chat.id,
-        instructions.get(c.data.replace("broadcast_", ""), "Send your message:"),
-        parse_mode="Markdown"
-    )
-    master_bot.register_next_step_handler(msg, process_broadcast_content)
+    if c.data == "broadcast_send":
+        msg = master_bot.send_message(
+            c.message.chat.id,
+            "📤 *Send your message*\n\n"
+            "✅ Supports everything:\n"
+            "• *Bold*, _Italic_, __Underline__, ~Strikethrough~\n"
+            "• [Links](https://t.me/username)\n"
+            "• Emojis 😊🎉✅\n"
+            "• Photos with caption\n"
+            "• Videos with caption\n"
+            "• Documents with caption\n"
+            "• Audio with caption\n"
+            "• Any file\n\n"
+            "📌 Just send whatever you want to broadcast!\n"
+            "Send /cancel to cancel:",
+            parse_mode="Markdown"
+        )
+        master_bot.register_next_step_handler(msg, process_broadcast_smart)
 
-def process_broadcast_content(m):
-    """Process broadcast content based on type"""
+def process_broadcast_smart(m):
+    """Smart broadcast - auto detects what was sent"""
     if m.from_user.id not in ADMIN_IDS:
         return
     
     if m.text and m.text.startswith('/cancel'):
         master_bot.send_message(m.chat.id, "❌ Broadcast cancelled.")
         return
-    
-    # Get broadcast type from session
-    session = user_sessions.get(m.chat.id, {})
-    broadcast_type = session.get("broadcast_type", "text")
-    
-    # Clear session
-    user_sessions.pop(m.chat.id, None)
     
     # Get users
     user_ids = load_user_ids()
@@ -1047,10 +988,60 @@ def process_broadcast_content(m):
         )
         return
     
+    # Detect what type of content was sent
+    content_type = "text"
+    content_data = None
+    
+    if m.text:
+        content_type = "text"
+        content_data = {
+            "text": m.text,
+            "entities": m.entities
+        }
+    elif m.photo:
+        content_type = "photo"
+        content_data = {
+            "file_id": m.photo[-1].file_id,
+            "caption": m.caption
+        }
+    elif m.video:
+        content_type = "video"
+        content_data = {
+            "file_id": m.video.file_id,
+            "caption": m.caption
+        }
+    elif m.document:
+        content_type = "document"
+        content_data = {
+            "file_id": m.document.file_id,
+            "caption": m.caption
+        }
+    elif m.audio:
+        content_type = "audio"
+        content_data = {
+            "file_id": m.audio.file_id,
+            "caption": m.caption
+        }
+    elif m.voice:
+        content_type = "voice"
+        content_data = {
+            "file_id": m.voice.file_id,
+            "caption": m.caption
+        }
+    elif m.animation:
+        content_type = "animation"
+        content_data = {
+            "file_id": m.animation.file_id,
+            "caption": m.caption
+        }
+    else:
+        master_bot.send_message(m.chat.id, "❌ Unsupported content type!")
+        return
+    
     # Show status
     status_msg = master_bot.send_message(
         m.chat.id,
-        f"⏳ *Sending {broadcast_type} to {len(user_ids)} users...*",
+        f"⏳ *Sending {content_type} to {len(user_ids)} users...*",
         parse_mode="Markdown"
     )
     
@@ -1059,115 +1050,69 @@ def process_broadcast_content(m):
     failed_users = []
     bot_tokens = list(active_bots)
     
-    # Process based on type
+    # Send to all users
     for idx, user_id in enumerate(user_ids):
         sent = False
         for bot_token in bot_tokens:
             try:
                 bot = telebot.TeleBot(bot_token)
                 
-                if broadcast_type == "text":
+                if content_type == "text":
                     bot.send_message(
                         user_id,
-                        m.text,
+                        content_data["text"],
                         parse_mode="Markdown",
-                        entities=m.entities,
+                        entities=content_data["entities"],
                         disable_web_page_preview=False
                     )
                 
-                elif broadcast_type == "photo":
-                    if m.photo:
-                        bot.send_photo(
-                            user_id,
-                            m.photo[-1].file_id,
-                            caption=m.caption,
-                            parse_mode="Markdown"
-                        )
-                    else:
-                        master_bot.send_message(m.chat.id, "❌ Please send a photo!")
-                        return
-                
-                elif broadcast_type == "video":
-                    if m.video:
-                        bot.send_video(
-                            user_id,
-                            m.video.file_id,
-                            caption=m.caption,
-                            parse_mode="Markdown"
-                        )
-                    else:
-                        master_bot.send_message(m.chat.id, "❌ Please send a video!")
-                        return
-                
-                elif broadcast_type == "document":
-                    if m.document:
-                        bot.send_document(
-                            user_id,
-                            m.document.file_id,
-                            caption=m.caption,
-                            parse_mode="Markdown"
-                        )
-                    else:
-                        master_bot.send_message(m.chat.id, "❌ Please send a document!")
-                        return
-                
-                elif broadcast_type == "audio":
-                    if m.audio:
-                        bot.send_audio(
-                            user_id,
-                            m.audio.file_id,
-                            caption=m.caption,
-                            parse_mode="Markdown"
-                        )
-                    else:
-                        master_bot.send_message(m.chat.id, "❌ Please send audio!")
-                        return
-                
-                elif broadcast_type == "link":
-                    # Check if it's a valid link
-                    link_text = m.text
-                    if not link_text.startswith(('http://', 'https://', 't.me/', '@')):
-                        link_text = f"https://{link_text}"
-                    
-                    caption = m.caption or f"🔗 [Click here]({link_text})"
-                    bot.send_message(
+                elif content_type == "photo":
+                    bot.send_photo(
                         user_id,
-                        caption,
-                        parse_mode="Markdown",
-                        disable_web_page_preview=False
+                        content_data["file_id"],
+                        caption=content_data["caption"],
+                        parse_mode="Markdown"
                     )
                 
-                elif broadcast_type == "file":
-                    if m.document:
-                        bot.send_document(
-                            user_id,
-                            m.document.file_id,
-                            caption=m.caption,
-                            parse_mode="Markdown"
-                        )
-                    else:
-                        master_bot.send_message(m.chat.id, "❌ Please send a file!")
-                        return
+                elif content_type == "video":
+                    bot.send_video(
+                        user_id,
+                        content_data["file_id"],
+                        caption=content_data["caption"],
+                        parse_mode="Markdown"
+                    )
                 
-                elif broadcast_type == "media_group":
-                    if m.media_group_id:
-                        if m.photo:
-                            bot.send_photo(
-                                user_id,
-                                m.photo[-1].file_id,
-                                caption=m.caption,
-                                parse_mode="Markdown"
-                            )
-                        elif m.video:
-                            bot.send_video(
-                                user_id,
-                                m.video.file_id,
-                                caption=m.caption,
-                                parse_mode="Markdown"
-                            )
-                    else:
-                        master_bot.send_message(m.chat.id, "❌ Please send a media group!")
-                        return
+                elif content_type == "document":
+                    bot.send_document(
+                        user_id,
+                        content_data["file_id"],
+                        caption=content_data["caption"],
+                        parse_mode="Markdown"
+                    )
+                
+                elif content_type == "audio":
+                    bot.send_audio(
+                        user_id,
+                        content_data["file_id"],
+                        caption=content_data["caption"],
+                        parse_mode="Markdown"
+                    )
+                
+                elif content_type == "voice":
+                    bot.send_voice(
+                        user_id,
+                        content_data["file_id"],
+                        caption=content_data["caption"],
+                        parse_mode="Markdown"
+                    )
+                
+                elif content_type == "animation":
+                    bot.send_animation(
+                        user_id,
+                        content_data["file_id"],
+                        caption=content_data["caption"],
+                        parse_mode="Markdown"
+                    )
                 
                 success += 1
                 sent = True
@@ -1210,7 +1155,7 @@ def process_broadcast_content(m):
     result_msg += f"📤 Success: {success}\n"
     result_msg += f"❌ Failed: {fail}\n"
     result_msg += f"👥 Total users: {len(user_ids)}\n"
-    result_msg += f"📂 Type: {broadcast_type.upper()}"
+    result_msg += f"📂 Type: {content_type.upper()}"
     
     if fail > 0:
         result_msg += f"\n\n⚠️ {fail} users didn't receive the message."
