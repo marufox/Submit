@@ -1221,7 +1221,7 @@ def process_broadcast_content(m):
     
     master_bot.send_message(m.chat.id, result_msg, parse_mode="Markdown")
 
-# ================= 💳 [ 5.2 PAYMENT LIST SCANNER - 100% ACCURATE ] =================
+# ================= 💳 [ 5.2 PAYMENT LIST SCANNER - FIXED ] =================
 
 @master_bot.message_handler(func=lambda m: m.text == "💳 Payment List Scanner")
 def m_payment_scanner(m):
@@ -1289,8 +1289,8 @@ def m_scan_type_callback(c):
     master_bot.register_next_step_handler_by_chat_id(c.message.chat.id, scan_ok_list_accurate)
 
 def scan_ok_list_accurate(m):
-    """100% Accurate OK List Scanner"""
-    global current_ok_data
+    """100% Accurate OK List Scanner - FIXED"""
+    global current_ok_data  # ← এই লাইন সঠিক
     
     if m.from_user.id not in ADMIN_IDS:
         return
