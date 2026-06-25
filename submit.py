@@ -22,7 +22,7 @@ ADMIN_IDS = [int(x.strip()) for x in ADMIN_IDS_STR.split(",")]
 TYPE_NAMES = {
     "ig_cookies": "Instagram Cookies",
     "ig_2fa": "Instagram 2FA",
-    "fb_0fd_2fa": "Facebook 0FD 2FA"
+    "fb_0fd_2fa": "Facebook 0FD Cookies"
 }
 
 TYPE_ICONS = {
@@ -1288,9 +1288,10 @@ def m_scan_type_callback(c):
     
     master_bot.register_next_step_handler_by_chat_id(c.message.chat.id, scan_ok_list_accurate)
 
+
 def scan_ok_list_accurate(m):
     """100% Accurate OK List Scanner - FIXED"""
-    global current_ok_data  # ← এই লাইন সঠিক
+    global current_ok_data
     
     if m.from_user.id not in ADMIN_IDS:
         return
