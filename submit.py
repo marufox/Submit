@@ -861,7 +861,7 @@ def back_to_main_menu(m):
         reply_markup=kb
     )
 
-# ================= 📢 [ BROADCAST - MASS USER SUPPORT ] =================
+# ================= 📢 [ BROADCAST - COMPLETE ] =================
 
 @master_bot.message_handler(func=lambda m: m.text == "📢 Broadcast")
 def m_broadcast(m):
@@ -873,15 +873,12 @@ def m_broadcast(m):
         master_bot.send_message(m.chat.id, "❌ No users found! Users need to start the bot first.", parse_mode="Markdown")
         return
     
-    # Check active bots
     if not active_bots:
         kb = types.InlineKeyboardMarkup(row_width=1)
         kb.add(types.InlineKeyboardButton("➕ Add Bot", callback_data="goto_add_bot_from_broadcast"))
         master_bot.send_message(
             m.chat.id,
-            "❌ *NO ACTIVE USER BOTS!*\n\n"
-            "Please add a bot first:\n"
-            "⚙️ More Options → ➕ Add Bot",
+            "❌ *NO ACTIVE USER BOTS!*\n\nPlease add a bot first:\n⚙️ More Options → ➕ Add Bot",
             parse_mode="Markdown",
             reply_markup=kb
         )
@@ -895,23 +892,7 @@ def m_broadcast(m):
     
     master_bot.send_message(
         m.chat.id,
-        f"📢 *BROADCAST*\n\n"
-        f"🤖 Active Bots: {len(active_bots)}\n"
-        f"👥 Total Users: {len(user_ids)}\n\n"
-        f"📌 Send your message with:\n"
-        f"• *Bold text*\n"
-        f"• _Italic text_\n"
-        f"• __Underline__\n"
-        f"• ~Strikethrough~\n"
-        f"• [Links](https://t.me/username)\n"
-        f"• Emojis 😊🎉✅‼️\n\n"
-        f"📌 Auto added to every message:\n"
-        f"```\n"
-        f"‼️ ATTENTION ‼️\n\n"
-        f"[Your Message]\n\n"
-        f"Thanks by MAX FUTURE ✅\n"
-        f"```\n\n"
-        f"Click below to start:",
+        f"📢 *BROADCAST*\n\n🤖 Active Bots: {len(active_bots)}\n👥 Total Users: {len(user_ids)}\n\n📌 Supports: Bold, Italic, Underline, Strikethrough, Links, Emojis, Code, Multiple lines\n\nClick below to start:",
         parse_mode="Markdown",
         reply_markup=kb
     )
@@ -929,9 +910,7 @@ def goto_add_bot_from_broadcast(c):
     
     msg = master_bot.send_message(
         c.message.chat.id,
-        "🤖 *Send Bot Token:*\n\n"
-        "Get token from @BotFather\n"
-        "Send /cancel to cancel:",
+        "🤖 *Send Bot Token:*\n\nGet token from @BotFather\nSend /cancel to cancel:",
         parse_mode="Markdown"
     )
     master_bot.register_next_step_handler(msg, save_bot_token)
@@ -954,30 +933,12 @@ def broadcast_callback(c):
     if c.data == "broadcast_text":
         msg = master_bot.send_message(
             c.message.chat.id,
-            "📝 *Send your message*\n\n"
-            "✅ Supports:\n"
-            "• *Bold text*\n"
-            "• _Italic text_\n"
-            "• __Underline__\n"
-            "• ~Strikethrough~\n"
-            "• [Clickable Links](https://t.me/username)\n"
-            "• Emojis 😊🎉✅‼️\n"
-            "• Code `inline code`\n"
-            "• Multiple lines\n\n"
-            "📌 Your message will be sent with:\n"
-            "```\n"
-            "‼️ ATTENTION ‼️\n\n"
-            "[Your Message]\n\n"
-            "Thanks by MAX FUTURE ✅\n"
-            "```\n\n"
-            f"👥 Will be sent to {len(load_user_ids())} users\n\n"
-            "Send /cancel to cancel:",
+            "📝 *Send your message*\n\n✅ Supports: Bold, Italic, Underline, Strikethrough, Links, Emojis, Code, Multiple lines\n\nSend /cancel to cancel:",
             parse_mode="Markdown"
         )
         master_bot.register_next_step_handler(msg, send_text_broadcast)
 
 def send_text_broadcast(m):
-    """Send text broadcast with auto footer - MASS USER SUPPORT"""
     if m.from_user.id not in ADMIN_IDS:
         return
     
@@ -990,15 +951,13 @@ def send_text_broadcast(m):
     except:
         pass
     
-    # Get user's message
     user_message = m.text
     
-    # Auto add header and footer
     final_message = f"""‼️ *ATTENTION* ‼️
 
 {user_message}
 
-Thanks by *MAX FUTURE* 💝"""
+Thanks by *MAX FUTURE* ✅"""
     
     user_ids = load_user_ids()
     
@@ -1007,57 +966,37 @@ Thanks by *MAX FUTURE* 💝"""
         return
     
     if not active_bots:
-        master_bot.send_message(
-            m.chat.id, 
-            "❌ *No active user bots!*\n\nPlease add a bot first:\n⚙️ More Options → ➕ Add Bot",
-            parse_mode="Markdown"
-        )
+        master_bot.send_message(m.chat.id, "❌ *No active user bots!*", parse_mode="Markdown")
         return
     
     total_users = len(user_ids)
-    status_msg = master_bot.send_message(
-        m.chat.id, 
-        f"⏳ *Sending to {total_users} users...*\n\n"
-        f"🤖 Active bots: {len(active_bots)}",
-        parse_mode="Markdown"
-    )
+    status_msg = master_bot.send_message(m.chat.id, f"⏳ *Sending to {total_users} users...*", parse_mode="Markdown")
     
     success = 0
     fail = 0
     failed_users = []
     bot_tokens = list(active_bots)
     
-    # Send to all users with progress update
     for idx, user_id in enumerate(user_ids):
         sent = False
         for bot_token in bot_tokens:
             try:
                 bot = telebot.TeleBot(bot_token)
-                bot.send_message(
-                    user_id, 
-                    final_message, 
-                    parse_mode="Markdown",
-                    disable_web_page_preview=False
-                )
+                bot.send_message(user_id, final_message, parse_mode="Markdown", disable_web_page_preview=False)
                 success += 1
                 sent = True
                 break
-            except Exception as e:
-                print(f"Failed for {user_id}: {e}")
+            except:
                 continue
         
         if not sent:
             fail += 1
             failed_users.append(user_id)
         
-        # Update progress every 50 users
         if (idx + 1) % 50 == 0 or (idx + 1) == total_users:
             try:
                 master_bot.edit_message_text(
-                    f"⏳ *Sending...*\n\n"
-                    f"📤 Sent: {success}\n"
-                    f"❌ Failed: {fail}\n"
-                    f"📊 Progress: {idx + 1}/{total_users}",
+                    f"⏳ *Sending...*\n\n📤 Sent: {success}\n❌ Failed: {fail}\n📊 Progress: {idx + 1}/{total_users}",
                     chat_id=status_msg.chat.id,
                     message_id=status_msg.message_id,
                     parse_mode="Markdown"
@@ -1065,19 +1004,14 @@ Thanks by *MAX FUTURE* 💝"""
             except:
                 pass
         
-        # Small delay to avoid rate limit (Telegram allows ~30 messages/sec)
-        time.sleep(0.03)  # 30ms delay between messages
+        time.sleep(0.03)
     
     try:
         master_bot.delete_message(m.chat.id, status_msg.message_id)
     except:
         pass
     
-    # Show result
-    result_msg = f"✅ *Broadcast Complete!*\n\n"
-    result_msg += f"📤 Success: {success}\n"
-    result_msg += f"❌ Failed: {fail}\n"
-    result_msg += f"👥 Total users: {total_users}"
+    result_msg = f"✅ *Broadcast Complete!*\n\n📤 Success: {success}\n❌ Failed: {fail}\n👥 Total users: {total_users}"
     
     if fail > 0:
         result_msg += f"\n\n⚠️ {fail} users didn't receive the message."
@@ -1085,16 +1019,9 @@ Thanks by *MAX FUTURE* 💝"""
             result_msg += f"\n💡 Failed users: {failed_users[:10]}"
             if len(failed_users) > 10:
                 result_msg += f" ... and {len(failed_users) - 10} more"
-        
-        # Save failed users to file for retry
-        try:
-            with open(f"failed_users_{int(time.time())}.txt", "w") as f:
-                f.write("\n".join([str(uid) for uid in failed_users]))
-            result_msg += f"\n📁 Failed users saved to file."
-        except:
-            pass
     
     master_bot.send_message(m.chat.id, result_msg, parse_mode="Markdown")
+            
 
 
 # ================= 💳 [ 5.2 PAYMENT LIST SCANNER - FIXED ] =================
