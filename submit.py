@@ -1291,8 +1291,6 @@ def m_scan_type_callback(c):
 
 def scan_ok_list_accurate(m):
     """100% Accurate OK List Scanner - FIXED"""
-    global current_ok_data
-    
     if m.from_user.id not in ADMIN_IDS:
         return
     
@@ -1440,6 +1438,7 @@ def scan_ok_list_accurate(m):
         }
     
     # Update global current_ok_data
+    global current_ok_data
     current_ok_data = {
         "total_ok": total_matches,
         "total_users": len(results),
@@ -1570,7 +1569,6 @@ def m_payment_list(m):
         )
         return
     
-    global current_ok_data
     db = load_db()
     
     # Create keyboard for type selection
@@ -1643,7 +1641,6 @@ def m_paylist_callback(c):
 
 def generate_payment_list_with_ok(chat_id, file_types, type_label):
     """Generate payment list with OK data from scanner"""
-    global current_ok_data
     db = load_db()
     
     submitter_data = []
