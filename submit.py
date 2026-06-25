@@ -22,7 +22,7 @@ ADMIN_IDS = [int(x.strip()) for x in ADMIN_IDS_STR.split(",")]
 TYPE_NAMES = {
     "ig_cookies": "Instagram Cookies",
     "ig_2fa": "Instagram 2FA",
-    "fb_0fd_2fa": "Facebook 0FD Cookies"
+    "fb_0fd_2fa": "Facebook 0FD 2FA"
 }
 
 TYPE_ICONS = {
