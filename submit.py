@@ -1023,8 +1023,7 @@ Thanks by *MAX FUTURE* ✅"""
     master_bot.send_message(m.chat.id, result_msg, parse_mode="Markdown")
             
 
-
-# ================= 💳 [ 5.2 PAYMENT LIST SCANNER - FIXED ] =================
+# ================= 💳 [ PAYMENT LIST SCANNER - COMPLETE FIX ] =================
 
 @master_bot.message_handler(func=lambda m: m.text == "💳 Payment List Scanner")
 def m_payment_scanner(m):
@@ -1042,11 +1041,11 @@ def m_payment_scanner(m):
     
     master_bot.send_message(
         m.chat.id,
-        "📁 *Which type to scan?*\n\n"
-        "Select an option below:",
+        "📁 *Which type to scan?*\n\nSelect an option below:",
         parse_mode="Markdown",
         reply_markup=kb
     )
+
 
 @master_bot.callback_query_handler(func=lambda c: c.data.startswith("scan_type_"))
 def m_scan_type_callback(c):
@@ -1076,7 +1075,7 @@ def m_scan_type_callback(c):
     except:
         pass
     
-    msg = master_bot.send_message(
+    master_bot.send_message(
         c.message.chat.id,
         f"✅ *{display_type} Selected*\n\n"
         f"📁 Now send your OK TXT file:\n\n"
@@ -1348,6 +1347,7 @@ def scan_ok_list_accurate(m):
             top_msg += f"   💳 {data['payment_method']} - {data['payment_number']}\n"
         
         master_bot.send_message(m.chat.id, top_msg, parse_mode="Markdown")
+
 
 # ================= 📥 [ 5.3 PAYMENT LIST - WITH OK DATA ] =================
 
