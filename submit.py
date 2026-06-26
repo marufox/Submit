@@ -17,8 +17,6 @@ ADMIN_IDS_STR = os.environ.get("ADMIN_IDS", "6293094676")
 ADMIN_IDS = [int(x.strip()) for x in ADMIN_IDS_STR.split(",")]
 
 # ========================================================
-# 🔥 এখানে আপনার ইচ্ছামতো নাম ও আইকন পরিবর্তন করুন
-# ========================================================
 TYPE_NAMES = {
     "ig_cookies": "Instagram Cookies",
     "ig_2fa": "Instagram 2FA",
@@ -125,12 +123,9 @@ def save_db(data):
             json.dump(data, f, indent=4)
         os.replace(temp_file, DB_FILE)
 
-# ================= 🔐 [ 3. FILE PROCESSING - COMPLETE AUTO DETECT ] =================
+# ================= 🔐 [ 3. FILE PROCESSING ] =================
 
 def auto_detect_columns(row):
-    """
-    Completely auto-detect columns - NO specific column names required!
-    """
     user_val = ""
     pass_val = ""
     twofa_val = ""
@@ -187,12 +182,6 @@ def process_file_with_columns(file_path, original_filename, file_type):
         if df is None or df.empty:
             return None, 0, None, 0
         
-        print(f"\n📋 Columns found in {original_filename}: {list(df.columns)}")
-        print(f"📊 Total rows: {len(df)}")
-        
-        if len(df.columns) < 1:
-            return None, 0, None, 0
-        
         filtered_data = []
         empty_count = 0
         rows_with_2fa = 0
@@ -204,9 +193,6 @@ def process_file_with_columns(file_path, original_filename, file_type):
             if twofa_val:
                 rows_with_2fa += 1
             
-            if idx < 5:
-                print(f"Row {idx}: user='{user_val}', pass='{pass_val}', 2fa='{str(twofa_val)[:30]}...'")
-            
             filtered_data.append({
                 "user": user_val,
                 "pass": pass_val,
@@ -217,8 +203,6 @@ def process_file_with_columns(file_path, original_filename, file_type):
             file_hash = hashlib.md5(f.read()).hexdigest()
         
         valid_rows = len([d for d in filtered_data if d['user'] or d['pass']])
-        
-        print(f"✅ Total rows: {len(filtered_data)}, Valid rows: {valid_rows}, Rows with 2fa: {rows_with_2fa}")
         
         return filtered_data, valid_rows, file_hash, empty_count
         
@@ -236,9 +220,7 @@ def process_file_worker(bot, chat_id, file_type, file_path, original_name, payme
             os.remove(file_path)
             bot.send_message(
                 chat_id, 
-                "❌ *NO DATA FOUND!*\n\n"
-                "📌 Your file was empty or had no readable data.\n\n"
-                "✅ Try uploading a file with at least 1 column of data.",
+                "❌ *NO DATA FOUND!*\n\nYour file was empty or had no readable data.",
                 parse_mode="Markdown"
             )
             return False
@@ -247,12 +229,7 @@ def process_file_worker(bot, chat_id, file_type, file_path, original_name, payme
         
         if file_hash in file_db:
             with open(file_path, "rb") as dup_file:
-                bot.send_document(
-                    chat_id, 
-                    dup_file, 
-                    caption=f"⚠️ *DUPLICATE FILE!*\n\n📁 File: `{original_name}`\n❌ This exact file was already submitted.",
-                    parse_mode="Markdown"
-                )
+                bot.send_document(chat_id, dup_file, caption=f"⚠️ *DUPLICATE FILE!*")
             os.remove(file_path)
             return False
         
@@ -283,25 +260,6 @@ def process_file_worker(bot, chat_id, file_type, file_path, original_name, payme
         
         db["global_unique_keys"] = list(global_unique_keys)
         
-        if global_duplicate_rows:
-            dup_df = pd.DataFrame(global_duplicate_rows)
-            dup_file_path = f"duplicate_rows_global_{int(time.time())}_{original_name}"
-            try:
-                if original_name.endswith('.csv'):
-                    dup_df.to_csv(dup_file_path, index=False)
-                else:
-                    dup_df.to_excel(dup_file_path, index=False)
-                
-                with open(dup_file_path, "rb") as f:
-                    bot.send_document(
-                        chat_id,
-                        f,
-                        caption=f"⚠️ *DUPLICATE DATA FOUND!*\n\n📊 {len(global_duplicate_rows)} rows already exist in database.\n\n✅ Only truly unique rows were saved."
-                    )
-                os.remove(dup_file_path)
-            except:
-                pass
-        
         filtered_data = truly_unique_rows
         valid_rows = len(filtered_data)
         
@@ -309,34 +267,11 @@ def process_file_worker(bot, chat_id, file_type, file_path, original_name, payme
             os.remove(file_path)
             bot.send_message(
                 chat_id,
-                "❌ *NO UNIQUE DATA!*\n\n"
-                f"📁 File: `{original_name}`\n"
-                f"⚠️ All rows already exist in database.\n\n"
-                f"📊 {len(global_duplicate_rows)} duplicate rows found.",
+                "❌ *NO UNIQUE DATA!*\n\nAll rows already exist in database.",
                 parse_mode="Markdown"
             )
             return False
         
-        if duplicate_rows:
-            dup_df = pd.DataFrame(duplicate_rows)
-            dup_file_path = f"duplicate_rows_internal_{int(time.time())}_{original_name}"
-            try:
-                if original_name.endswith('.csv'):
-                    dup_df.to_csv(dup_file_path, index=False)
-                else:
-                    dup_df.to_excel(dup_file_path, index=False)
-                
-                with open(dup_file_path, "rb") as f:
-                    bot.send_document(
-                        chat_id,
-                        f,
-                        caption=f"⚠️ *DUPLICATE ROWS IN YOUR FILE!*\n\n📁 File: `{original_name}`\n📊 {len(duplicate_rows)} duplicate rows found inside your file.\n\n✅ Only unique rows were processed further."
-                    )
-                os.remove(dup_file_path)
-            except:
-                pass
-        
-        # Get current date for filename
         current_date = datetime.now().strftime("%Y%m%d_%H%M%S")
         
         file_info = {
@@ -350,8 +285,6 @@ def process_file_worker(bot, chat_id, file_type, file_path, original_name, payme
             "file_type": file_type,
             "total_rows_in_file": valid_rows,
             "empty_rows": empty_rows,
-            "duplicate_rows_count": len(duplicate_rows),
-            "global_duplicate_count": len(global_duplicate_rows),
             "received_date": current_date
         }
         
@@ -374,17 +307,10 @@ def process_file_worker(bot, chat_id, file_type, file_path, original_name, payme
         
         save_db(db)
         
-        # Save backup with date in filename
         backup_filename = f"{file_type}_{current_date}_{original_name}"
         backup_path = os.path.join("backup", backup_filename)
         with open(file_path, "rb") as src, open(backup_path, "wb") as dst:
             dst.write(src.read())
-        
-        warning_msg = ""
-        if duplicate_rows:
-            warning_msg += f"\n⚠️ {len(duplicate_rows)} duplicate rows removed from your file!"
-        if global_duplicate_rows:
-            warning_msg += f"\n⚠️ {len(global_duplicate_rows)} rows already existed in database!"
         
         result_msg = (
             f"✅ *FILE PROCESSED!*\n\n"
@@ -394,13 +320,11 @@ def process_file_worker(bot, chat_id, file_type, file_path, original_name, payme
             f"📅 *Received:* `{current_date}`\n"
             f"━━━━━━━━━━━━━━━━━━━━\n"
             f"📊 *Valid rows:* `{valid_rows}`\n"
-            f"{warning_msg}\n"
             f"✨ *Status:* Successfully received"
         )
         
         bot.send_message(chat_id, result_msg, parse_mode="Markdown")
         
-        # Send to admin with date in filename
         for admin_id in ADMIN_IDS:
             try:
                 master_bot.send_message(
@@ -494,7 +418,6 @@ def start_user_bot(token):
                 f"👋 *Hello {m.from_user.first_name}!*{payment_info}\n\n"
                 f"📂 *Supported:* Any file format\n"
                 f"📌 *No specific columns needed!*\n"
-                f"   • Auto-detects user, pass, 2fa\n"
                 f"💳 *Payment:* bKash, Nagad, Rocket, Binance\n"
                 f"🔄 *Auto duplicate remove*\n\n"
                 f"📌 *Click below to start*",
@@ -522,8 +445,7 @@ def start_user_bot(token):
                 
                 bot.send_message(
                     user_id,
-                    "💰 *Change Payment Method*\n\n"
-                    "Select your new payment method:",
+                    "💰 *Change Payment Method*\n\nSelect your new payment method:",
                     parse_mode="Markdown",
                     reply_markup=kb
                 )
@@ -545,8 +467,7 @@ def start_user_bot(token):
                 
                 bot.send_message(
                     user_id,
-                    f"✅ *{method_name} Selected*\n\n"
-                    f"📝 Send your new {method_name} number:",
+                    f"✅ *{method_name} Selected*\n\n📝 Send your new {method_name} number:",
                     parse_mode="Markdown"
                 )
                 bot.register_next_step_handler_by_chat_id(user_id, update_payment_number)
@@ -611,9 +532,7 @@ def start_user_bot(token):
                         user_id,
                         f"✅ *Auto Payment Selected*\n\n"
                         f"💳 {user_payment['payment_method']} - `{user_payment['payment_number']}`\n\n"
-                        f"📎 *Send your file now*\n\n"
-                        f"📌 Any file format accepted\n"
-                        f"🔄 Auto-detects columns",
+                        f"📎 *Send your file now*",
                         parse_mode="Markdown"
                     )
                     bot.register_next_step_handler_by_chat_id(user_id, receive_file)
@@ -754,8 +673,6 @@ def start_user_bot(token):
                 return
             
             file_type = user_sessions[user_id]["file_type"]
-            
-            # Get current date for filename
             current_date = datetime.now().strftime("%Y%m%d_%H%M%S")
             
             file_info = bot.get_file(m.document.file_id)
@@ -870,7 +787,7 @@ def m_broadcast(m):
     
     user_ids = load_user_ids()
     if not user_ids:
-        master_bot.send_message(m.chat.id, "❌ No users found! Users need to start the bot first.", parse_mode="Markdown")
+        master_bot.send_message(m.chat.id, "❌ No users found!", parse_mode="Markdown")
         return
     
     if not active_bots:
@@ -878,7 +795,7 @@ def m_broadcast(m):
         kb.add(types.InlineKeyboardButton("➕ Add Bot", callback_data="goto_add_bot_from_broadcast"))
         master_bot.send_message(
             m.chat.id,
-            "❌ *NO ACTIVE USER BOTS!*\n\nPlease add a bot first:\n⚙️ More Options → ➕ Add Bot",
+            "❌ *NO ACTIVE USER BOTS!*\n\nPlease add a bot first:",
             parse_mode="Markdown",
             reply_markup=kb
         )
@@ -892,7 +809,7 @@ def m_broadcast(m):
     
     master_bot.send_message(
         m.chat.id,
-        f"📢 *BROADCAST*\n\n🤖 Active Bots: {len(active_bots)}\n👥 Total Users: {len(user_ids)}\n\n📌 Supports: Bold, Italic, Underline, Strikethrough, Links, Emojis, Code, Multiple lines\n\nClick below to start:",
+        f"📢 *BROADCAST*\n\n🤖 Active Bots: {len(active_bots)}\n👥 Total Users: {len(user_ids)}\n\nClick below to start:",
         parse_mode="Markdown",
         reply_markup=kb
     )
@@ -933,7 +850,7 @@ def broadcast_callback(c):
     if c.data == "broadcast_text":
         msg = master_bot.send_message(
             c.message.chat.id,
-            "📝 *Send your message*\n\n✅ Supports: Bold, Italic, Underline, Strikethrough, Links, Emojis, Code, Multiple lines\n\nSend /cancel to cancel:",
+            "📝 *Send your message*\n\nSend /cancel to cancel:",
             parse_mode="Markdown"
         )
         master_bot.register_next_step_handler(msg, send_text_broadcast)
@@ -1015,10 +932,6 @@ Thanks by *MAX FUTURE* ✅"""
     
     if fail > 0:
         result_msg += f"\n\n⚠️ {fail} users didn't receive the message."
-        if failed_users:
-            result_msg += f"\n💡 Failed users: {failed_users[:10]}"
-            if len(failed_users) > 10:
-                result_msg += f" ... and {len(failed_users) - 10} more"
     
     master_bot.send_message(m.chat.id, result_msg, parse_mode="Markdown")
 
@@ -1031,22 +944,22 @@ def m_payment_scanner(m):
     
     kb = types.InlineKeyboardMarkup(row_width=2)
     kb.add(
-        types.InlineKeyboardButton(f"{get_type_icon('ig_cookies')} {get_type_display_name('ig_cookies')}", callback_data="scanner_type_ig_cookies"),
-        types.InlineKeyboardButton(f"{get_type_icon('ig_2fa')} {get_type_display_name('ig_2fa')}", callback_data="scanner_type_ig_2fa"),
-        types.InlineKeyboardButton(f"{get_type_icon('fb_0fd_2fa')} {get_type_display_name('fb_0fd_2fa')}", callback_data="scanner_type_fb_0fd_2fa"),
-        types.InlineKeyboardButton("📊 All Types", callback_data="scanner_type_all"),
+        types.InlineKeyboardButton(f"{get_type_icon('ig_cookies')} {get_type_display_name('ig_cookies')}", callback_data="scanner_select_ig_cookies"),
+        types.InlineKeyboardButton(f"{get_type_icon('ig_2fa')} {get_type_display_name('ig_2fa')}", callback_data="scanner_select_ig_2fa"),
+        types.InlineKeyboardButton(f"{get_type_icon('fb_0fd_2fa')} {get_type_display_name('fb_0fd_2fa')}", callback_data="scanner_select_fb_0fd_2fa"),
+        types.InlineKeyboardButton("📊 All Types", callback_data="scanner_select_all"),
         types.InlineKeyboardButton("❌ Cancel", callback_data="scanner_cancel")
     )
     
     master_bot.send_message(
         m.chat.id,
-        "📁 *Payment List Scanner*\n\nSelect which type to scan with OK list:\n\n💡 You will need to upload a TXT file containing usernames/emails to check against the database.",
+        "📁 *Payment List Scanner*\n\nSelect which type to scan with OK list:\n\n💡 You will need to upload a TXT file containing usernames/emails.",
         parse_mode="Markdown",
         reply_markup=kb
     )
 
-@master_bot.callback_query_handler(func=lambda c: c.data.startswith("scanner_type_"))
-def m_scanner_type_callback(c):
+@master_bot.callback_query_handler(func=lambda c: c.data.startswith("scanner_select_"))
+def m_scanner_select_callback(c):
     if c.from_user.id not in ADMIN_IDS:
         master_bot.answer_callback_query(c.id, "❌ Unauthorized!")
         return
@@ -1059,14 +972,14 @@ def m_scanner_type_callback(c):
         master_bot.send_message(c.message.chat.id, "❌ Scanner cancelled.")
         return
     
-    scan_type = c.data.replace("scanner_type_", "")
+    scan_type = c.data.replace("scanner_select_", "")
     
     if scan_type == "all":
         display_type = "ALL TYPES"
     else:
         display_type = get_type_display_name(scan_type)
     
-    # Store scan type in session
+    # Store in session
     user_sessions[c.message.chat.id] = {"scan_type": scan_type}
     
     try:
@@ -1081,13 +994,12 @@ def m_scanner_type_callback(c):
         f"💡 Each line should contain one username/email\n"
         f"📌 Example:\n"
         f"   • john_doe\n"
-        f"   • jane@email.com\n"
-        f"   • user123\n\n"
+        f"   • jane@email.com\n\n"
         f"Send /cancel to cancel:",
         parse_mode="Markdown"
     )
     
-    master_bot.register_next_step_handler_by_chat_id(c.message.chat.id, scan_ok_list)
+    master_bot.register_next_step_handler(c.message, scan_ok_list)
 
 def scan_ok_list(m):
     """OK List Scanner - Matches TXT data with database"""
@@ -1252,7 +1164,6 @@ def scan_ok_list(m):
     
     display_type = get_type_display_name(scan_type) if scan_type != 'all' else "ALL TYPES"
     
-    # Generate report
     report_data = []
     for submitted_by, data in results.items():
         report_data.append({
@@ -1273,7 +1184,6 @@ def scan_ok_list(m):
         report_file = f"reports/scan_report_{current_date}_{m.chat.id}.csv"
         df.to_csv(report_file, index=False, encoding='utf-8-sig')
     
-    # Payment breakdown
     bkash_count = len([x for x in report_data if x["Payment Method"] == "bKash"])
     nagad_count = len([x for x in report_data if x["Payment Method"] == "Nagad"])
     rocket_count = len([x for x in report_data if x["Payment Method"] == "Rocket"])
@@ -1305,8 +1215,7 @@ def scan_ok_list(m):
             caption=f"📊 SCAN REPORT\n"
                     f"📅 Date: {current_date}\n"
                     f"Type: {display_type}\n"
-                    f"Total Matches: {total_matches}\n"
-                    f"Matched Submitters: {len(results)}"
+                    f"Total Matches: {total_matches}"
         )
     
     os.remove(report_file)
@@ -1330,26 +1239,22 @@ def m_payment_list(m):
     
     kb = types.InlineKeyboardMarkup(row_width=2)
     kb.add(
-        types.InlineKeyboardButton(f"{get_type_icon('ig_cookies')} {get_type_display_name('ig_cookies')}", callback_data="paylist_ig_cookies"),
-        types.InlineKeyboardButton(f"{get_type_icon('ig_2fa')} {get_type_display_name('ig_2fa')}", callback_data="paylist_ig_2fa"),
-        types.InlineKeyboardButton(f"{get_type_icon('fb_0fd_2fa')} {get_type_display_name('fb_0fd_2fa')}", callback_data="paylist_fb_0fd_2fa"),
-        types.InlineKeyboardButton("📊 All Types", callback_data="paylist_all"),
+        types.InlineKeyboardButton(f"{get_type_icon('ig_cookies')} {get_type_display_name('ig_cookies')}", callback_data="paylist_select_ig_cookies"),
+        types.InlineKeyboardButton(f"{get_type_icon('ig_2fa')} {get_type_display_name('ig_2fa')}", callback_data="paylist_select_ig_2fa"),
+        types.InlineKeyboardButton(f"{get_type_icon('fb_0fd_2fa')} {get_type_display_name('fb_0fd_2fa')}", callback_data="paylist_select_fb_0fd_2fa"),
+        types.InlineKeyboardButton("📊 All Types", callback_data="paylist_select_all"),
         types.InlineKeyboardButton("❌ Cancel", callback_data="paylist_cancel")
     )
     
-    scan_info = ""
-    if current_ok_data.get("results"):
-        scan_info = f"\n\n📊 *Last Scan:*\n✅ Total OK: {current_ok_data.get('total_ok', 0)}\n👥 Submitters: {current_ok_data.get('total_users', 0)}\n🕐 Scanned: {current_ok_data.get('last_scan_time', 'Never')}"
-    
     master_bot.send_message(
         m.chat.id,
-        f"📥 *PAYMENT LIST*\n\nSelect which type you want to see:{scan_info}",
+        f"📥 *PAYMENT LIST*\n\nSelect which type you want to see:",
         parse_mode="Markdown",
         reply_markup=kb
     )
 
-@master_bot.callback_query_handler(func=lambda c: c.data.startswith("paylist_"))
-def m_paylist_callback(c):
+@master_bot.callback_query_handler(func=lambda c: c.data.startswith("paylist_select_"))
+def m_paylist_select_callback(c):
     if c.from_user.id not in ADMIN_IDS:
         master_bot.answer_callback_query(c.id, "❌ Unauthorized!")
         return
@@ -1362,7 +1267,7 @@ def m_paylist_callback(c):
         master_bot.send_message(c.message.chat.id, "❌ Cancelled.")
         return
     
-    selected_type = c.data.replace("paylist_", "")
+    selected_type = c.data.replace("paylist_select_", "")
     
     if selected_type == "all":
         file_types = ["ig_cookies", "ig_2fa", "fb_0fd_2fa"]
@@ -1463,11 +1368,6 @@ def generate_payment_list(chat_id, file_types, type_label):
     total_rows = sum(d["total_rows"] for d in final_data)
     total_ok = sum(d["ok_count"] for d in final_data)
     
-    bkash_count = len([x for x in final_data if x["payment_method"] == "bKash"])
-    nagad_count = len([x for x in final_data if x["payment_method"] == "Nagad"])
-    rocket_count = len([x for x in final_data if x["payment_method"] == "Rocket"])
-    binance_count = len([x for x in final_data if x["payment_method"] == "Binance"])
-    
     try:
         master_bot.delete_message(chat_id, status_msg.message_id)
     except:
@@ -1481,11 +1381,6 @@ def generate_payment_list(chat_id, file_types, type_label):
     summary += f"📊 Total Rows: {total_rows}\n"
     summary += f"✅ Total OK: {total_ok}\n"
     summary += f"━━━━━━━━━━━━━━━━━━━━\n\n"
-    summary += f"💳 *Payment Breakdown:*\n"
-    summary += f"🏦 bKash: {bkash_count} submitters\n"
-    summary += f"🏧 Nagad: {nagad_count} submitters\n"
-    summary += f"💳 Rocket: {rocket_count} submitters\n"
-    summary += f"₿ Binance: {binance_count} submitters\n\n"
     summary += f"📥 Downloading file..."
     
     master_bot.send_message(chat_id, summary, parse_mode="Markdown")
@@ -1496,8 +1391,72 @@ def generate_payment_list(chat_id, file_types, type_label):
             f, 
             caption=f"📊 {type_label} PAYMENT LIST\n"
                     f"📅 Date: {current_date}\n"
-                    f"Total OK: {total_ok}\n\n"
-                    f"Columns: submitted_by, payment_method, payment_number, total_rows, ok_count"
+                    f"Total OK: {total_ok}"
+        )
+    
+    os.remove(data_file)
+
+# ================= 💳 [ USER PAYMENTS ] =================
+
+@master_bot.message_handler(func=lambda m: m.text == "💳 User Payments")
+def m_user_payments(m):
+    if m.from_user.id not in ADMIN_IDS:
+        return
+    
+    db = load_db()
+    user_payments = db.get("user_payment_settings", {})
+    
+    if not user_payments:
+        master_bot.send_message(
+            m.chat.id, 
+            "❌ *No user payment data found!*", 
+            parse_mode="Markdown"
+        )
+        return
+    
+    status_msg = master_bot.send_message(
+        m.chat.id, 
+        f"⏳ *Generating User Payment List...*",
+        parse_mode="Markdown"
+    )
+    
+    payment_data = []
+    for user_id, payment_info in user_payments.items():
+        payment_data.append({
+            "User ID": user_id,
+            "Method": payment_info.get("payment_method", "N/A"),
+            "Number": payment_info.get("payment_number", "N/A")
+        })
+    
+    current_date = datetime.now().strftime("%Y%m%d_%H%M%S")
+    
+    df = pd.DataFrame(payment_data)
+    data_file = f"reports/user_payments_{current_date}_{m.chat.id}.xlsx"
+    try:
+        df.to_excel(data_file, index=False)
+    except:
+        data_file = f"reports/user_payments_{current_date}_{m.chat.id}.csv"
+        df.to_csv(data_file, index=False, encoding='utf-8-sig')
+    
+    try:
+        master_bot.delete_message(m.chat.id, status_msg.message_id)
+    except:
+        pass
+    
+    summary = f"💳 *USER PAYMENT REPORT*\n\n"
+    summary += f"📅 Date: {current_date}\n"
+    summary += f"👥 Total Users: {len(payment_data)}\n\n"
+    summary += f"📥 Downloading file..."
+    
+    master_bot.send_message(m.chat.id, summary, parse_mode="Markdown")
+    
+    with open(data_file, "rb") as f:
+        master_bot.send_document(
+            m.chat.id, 
+            f, 
+            caption=f"📊 USER PAYMENT LIST\n"
+                    f"📅 Date: {current_date}\n"
+                    f"Total Users: {len(payment_data)}"
         )
     
     os.remove(data_file)
@@ -1712,15 +1671,6 @@ def m_download_type_callback(c):
                         item.get("submitted_at", ""),
                         received_date
                     ])
-            else:
-                writer.writerow([
-                    item.get("user", ""),
-                    item.get("pass", ""),
-                    item.get("2fa", ""),
-                    item.get("submitted_by", ""),
-                    item.get("submitted_at", ""),
-                    item.get("received_date", "Unknown")
-                ])
     
     try:
         master_bot.delete_message(c.message.chat.id, status_msg.message_id)
@@ -1733,7 +1683,6 @@ def m_download_type_callback(c):
             f, 
             caption=f"📊 {display_type}\n"
                     f"📅 Date: {current_date}\n"
-                    f"📋 All user data\n\n"
                     f"Total rows: {total_rows}\n"
                     f"Rows with 2FA: {rows_with_2fa}"
         )
@@ -1841,72 +1790,6 @@ def m_clear_callback(c):
         parse_mode="Markdown"
     )
 
-# ================= 💳 [ USER PAYMENTS ] =================
-
-@master_bot.message_handler(func=lambda m: m.text == "💳 User Payments")
-def m_user_payments(m):
-    if m.from_user.id not in ADMIN_IDS:
-        return
-    
-    db = load_db()
-    user_payments = db.get("user_payment_settings", {})
-    
-    if not user_payments:
-        master_bot.send_message(
-            m.chat.id, 
-            "❌ *No user payment data found!*", 
-            parse_mode="Markdown"
-        )
-        return
-    
-    payment_data = []
-    for user_id, payment_info in user_payments.items():
-        payment_data.append({
-            "User ID": user_id,
-            "Method": payment_info.get("payment_method", "N/A"),
-            "Number": payment_info.get("payment_number", "N/A")
-        })
-    
-    current_date = datetime.now().strftime("%Y%m%d_%H%M%S")
-    
-    df = pd.DataFrame(payment_data)
-    data_file = f"reports/user_payments_{current_date}_{m.chat.id}.xlsx"
-    try:
-        df.to_excel(data_file, index=False)
-    except:
-        data_file = f"reports/user_payments_{current_date}_{m.chat.id}.csv"
-        df.to_csv(data_file, index=False, encoding='utf-8-sig')
-    
-    bkash = len([p for p in payment_data if p["Method"] == "bKash"])
-    nagad = len([p for p in payment_data if p["Method"] == "Nagad"])
-    rocket = len([p for p in payment_data if p["Method"] == "Rocket"])
-    binance = len([p for p in payment_data if p["Method"] == "Binance"])
-    unknown = len([p for p in payment_data if p["Method"] == "N/A"])
-    
-    summary = f"💳 *USER PAYMENT REPORT*\n\n"
-    summary += f"📅 Date: {current_date}\n"
-    summary += f"👥 Total Users: {len(payment_data)}\n"
-    summary += f"━━━━━━━━━━━━━━━━━━━━\n"
-    summary += f"🏦 bKash: {bkash} users\n"
-    summary += f"🏧 Nagad: {nagad} users\n"
-    summary += f"💳 Rocket: {rocket} users\n"
-    summary += f"₿ Binance: {binance} users\n"
-    summary += f"❓ Unknown: {unknown} users\n\n"
-    summary += f"📥 Downloading file..."
-    
-    master_bot.send_message(m.chat.id, summary, parse_mode="Markdown")
-    
-    with open(data_file, "rb") as f:
-        master_bot.send_document(
-            m.chat.id, 
-            f, 
-            caption=f"📊 USER PAYMENT LIST\n"
-                    f"📅 Date: {current_date}\n\n"
-                    f"User ID, Payment Method, Payment Number"
-        )
-    
-    os.remove(data_file)
-
 # ================= 🔍 [ SEARCH USER ] =================
 
 @master_bot.message_handler(func=lambda m: m.text == "🔍 Search User")
@@ -1916,9 +1799,7 @@ def m_search_user(m):
     
     msg = master_bot.send_message(
         m.chat.id, 
-        "🔍 *Enter User ID:*\n\n"
-        "Type the User ID to search:\n"
-        "Send /cancel to cancel",
+        "🔍 *Enter User ID:*\n\nType the User ID to search:\nSend /cancel to cancel",
         parse_mode="Markdown"
     )
     master_bot.register_next_step_handler(msg, search_user_payment)
