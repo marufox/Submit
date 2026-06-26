@@ -692,7 +692,10 @@ def start_user_bot(token):
         if token in active_bots:
             active_bots.remove(token)
 
-# ================= 👑 [ 5. MASTER PANEL ] =================
+# ================= 👑 [ 5. MASTER PANEL - MAIN MENU KEEPS ] =================
+
+# Store main menu message IDs to keep them
+main_menu_messages = {}
 
 @master_bot.message_handler(commands=['start'])
 def m_start(m):
@@ -700,19 +703,13 @@ def m_start(m):
         master_bot.send_message(m.chat.id, "❌ Unauthorized!")
         return
     
-    # Delete previous messages
-    try:
-        master_bot.delete_message(m.chat.id, m.message_id - 1)
-    except:
-        pass
-    
     kb = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     kb.row("📊 Total Stats", "📥 Payment List")
     kb.row("📁 Download by Type", "🎛️ Type Control")
     kb.row("📋 Report Check", "📢 Broadcast")
     kb.row("⚙️ More Options")
     
-    master_bot.send_message(
+    msg = master_bot.send_message(
         m.chat.id,
         f"👑 MASTER ADMIN PANEL 👑\n\n"
         f"🎛️ Current Status:\n"
@@ -722,15 +719,17 @@ def m_start(m):
         f"📌 Select an option below",
         reply_markup=kb
     )
+    
+    # Store main menu message ID
+    main_menu_messages[m.chat.id] = msg.message_id
 
 @master_bot.message_handler(func=lambda m: m.text == "⚙️ More Options")
 def m_more_options(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Delete previous messages
+    # Delete only the command message
     try:
-        master_bot.delete_message(m.chat.id, m.message_id - 1)
         master_bot.delete_message(m.chat.id, m.message_id)
     except:
         pass
@@ -752,20 +751,20 @@ def back_to_main_menu(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Delete previous messages
+    # Delete only the response message
     try:
-        master_bot.delete_message(m.chat.id, m.message_id - 1)
         master_bot.delete_message(m.chat.id, m.message_id)
     except:
         pass
     
+    # Show main menu again
     kb = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     kb.row("📊 Total Stats", "📥 Payment List")
     kb.row("📁 Download by Type", "🎛️ Type Control")
     kb.row("📋 Report Check", "📢 Broadcast")
     kb.row("⚙️ More Options")
     
-    master_bot.send_message(
+    msg = master_bot.send_message(
         m.chat.id,
         f"👑 MASTER ADMIN PANEL 👑\n\n"
         f"🎛️ Current Status:\n"
@@ -775,6 +774,37 @@ def back_to_main_menu(m):
         f"📌 Select an option below",
         reply_markup=kb
     )
+    
+    main_menu_messages[m.chat.id] = msg.message_id
+
+@master_bot.callback_query_handler(func=lambda c: c.data == "back_to_menu")
+def m_back_to_menu_callback(c):
+    if c.from_user.id not in ADMIN_IDS:
+        return
+    
+    try:
+        master_bot.delete_message(c.message.chat.id, c.message.message_id)
+    except:
+        pass
+    
+    kb = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    kb.row("📊 Total Stats", "📥 Payment List")
+    kb.row("📁 Download by Type", "🎛️ Type Control")
+    kb.row("📋 Report Check", "📢 Broadcast")
+    kb.row("⚙️ More Options")
+    
+    msg = master_bot.send_message(
+        c.message.chat.id,
+        f"👑 MASTER ADMIN PANEL 👑\n\n"
+        f"🎛️ Current Status:\n"
+        f"🟢 {get_type_display_name('ig_cookies')}: {'ON' if type_status['ig_cookies'] else 'OFF'}\n"
+        f"🟢 {get_type_display_name('ig_2fa')}: {'ON' if type_status['ig_2fa'] else 'OFF'}\n"
+        f"🟢 {get_type_display_name('fb_0fd_2fa')}: {'ON' if type_status['fb_0fd_2fa'] else 'OFF'}\n\n"
+        f"📌 Select an option below",
+        reply_markup=kb
+    )
+    
+    main_menu_messages[c.message.chat.id] = msg.message_id
 
 # ================= 📢 [ BROADCAST ] =================
 
@@ -783,9 +813,8 @@ def m_broadcast(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Delete previous messages
+    # Delete only the command message
     try:
-        master_bot.delete_message(m.chat.id, m.message_id - 1)
         master_bot.delete_message(m.chat.id, m.message_id)
     except:
         pass
@@ -942,9 +971,8 @@ def m_report_check(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Delete previous messages
+    # Delete only the command message
     try:
-        master_bot.delete_message(m.chat.id, m.message_id - 1)
         master_bot.delete_message(m.chat.id, m.message_id)
     except:
         pass
@@ -1023,6 +1051,7 @@ def scan_ok_list_clean(m):
         master_bot.send_message(m.chat.id, "❌ Only TXT files are supported!")
         return
     
+    # Don't delete the file message
     try:
         master_bot.delete_message(m.chat.id, m.message_id)
     except:
@@ -1202,9 +1231,8 @@ def m_payment_list(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Delete previous messages
+    # Delete only the command message
     try:
-        master_bot.delete_message(m.chat.id, m.message_id - 1)
         master_bot.delete_message(m.chat.id, m.message_id)
     except:
         pass
@@ -1377,9 +1405,8 @@ def m_user_payments(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Delete previous messages
+    # Delete only the command message
     try:
-        master_bot.delete_message(m.chat.id, m.message_id - 1)
         master_bot.delete_message(m.chat.id, m.message_id)
     except:
         pass
@@ -1433,6 +1460,7 @@ def m_user_payments(m):
     
     master_bot.send_message(m.chat.id, summary)
     
+    # Send file
     with open(data_file, "rb") as f:
         master_bot.send_document(
             m.chat.id, 
@@ -1452,9 +1480,8 @@ def m_type_control(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Delete previous messages
+    # Delete only the command message
     try:
-        master_bot.delete_message(m.chat.id, m.message_id - 1)
         master_bot.delete_message(m.chat.id, m.message_id)
     except:
         pass
@@ -1515,9 +1542,8 @@ def m_stats(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Delete previous messages
+    # Delete only the command message
     try:
-        master_bot.delete_message(m.chat.id, m.message_id - 1)
         master_bot.delete_message(m.chat.id, m.message_id)
     except:
         pass
@@ -1596,9 +1622,8 @@ def m_download_by_type(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Delete previous messages
+    # Delete only the command message
     try:
-        master_bot.delete_message(m.chat.id, m.message_id - 1)
         master_bot.delete_message(m.chat.id, m.message_id)
     except:
         pass
@@ -1695,9 +1720,8 @@ def m_clear_data(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Delete previous messages
+    # Delete only the command message
     try:
-        master_bot.delete_message(m.chat.id, m.message_id - 1)
         master_bot.delete_message(m.chat.id, m.message_id)
     except:
         pass
@@ -1801,9 +1825,8 @@ def m_search_user(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Delete previous messages
+    # Delete only the command message
     try:
-        master_bot.delete_message(m.chat.id, m.message_id - 1)
         master_bot.delete_message(m.chat.id, m.message_id)
     except:
         pass
@@ -1849,9 +1872,8 @@ def m_add_bot(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Delete previous messages
+    # Delete only the command message
     try:
-        master_bot.delete_message(m.chat.id, m.message_id - 1)
         master_bot.delete_message(m.chat.id, m.message_id)
     except:
         pass
@@ -1883,9 +1905,8 @@ def m_remove_bot(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Delete previous messages
+    # Delete only the command message
     try:
-        master_bot.delete_message(m.chat.id, m.message_id - 1)
         master_bot.delete_message(m.chat.id, m.message_id)
     except:
         pass
@@ -1933,9 +1954,8 @@ def m_reset_types(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Delete previous messages
+    # Delete only the command message
     try:
-        master_bot.delete_message(m.chat.id, m.message_id - 1)
         master_bot.delete_message(m.chat.id, m.message_id)
     except:
         pass
@@ -1948,35 +1968,6 @@ def m_reset_types(m):
     }
     
     master_bot.send_message(m.chat.id, "✅ All types reset to ON!")
-
-# ================= 🔄 [ BACK TO MENU CALLBACK ] =================
-
-@master_bot.callback_query_handler(func=lambda c: c.data == "back_to_menu")
-def m_back_to_menu(c):
-    if c.from_user.id not in ADMIN_IDS:
-        return
-    
-    try:
-        master_bot.delete_message(c.message.chat.id, c.message.message_id)
-    except:
-        pass
-    
-    kb = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    kb.row("📊 Total Stats", "📥 Payment List")
-    kb.row("📁 Download by Type", "🎛️ Type Control")
-    kb.row("📋 Report Check", "📢 Broadcast")
-    kb.row("⚙️ More Options")
-    
-    master_bot.send_message(
-        c.message.chat.id,
-        f"👑 MASTER ADMIN PANEL 👑\n\n"
-        f"🎛️ Current Status:\n"
-        f"🟢 {get_type_display_name('ig_cookies')}: {'ON' if type_status['ig_cookies'] else 'OFF'}\n"
-        f"🟢 {get_type_display_name('ig_2fa')}: {'ON' if type_status['ig_2fa'] else 'OFF'}\n"
-        f"🟢 {get_type_display_name('fb_0fd_2fa')}: {'ON' if type_status['fb_0fd_2fa'] else 'OFF'}\n\n"
-        f"📌 Select an option below",
-        reply_markup=kb
-    )
 
 # ================= 🔄 [ MAIN ] =================
 
@@ -1991,10 +1982,11 @@ def run_all_bots():
 
 if __name__ == "__main__":
     print("=" * 50)
-    print("👑 ID RECEIVER SYSTEM v24.0")
+    print("👑 ID RECEIVER SYSTEM v25.0")
     print("🎛️ CLEAN REPORT CHECK")
     print("🎛️ NO TOP 5 SUBMITTERS")
-    print("🎛️ AUTO DELETE HISTORY")
+    print("🎛️ MAIN MENU KEEPS")
+    print("🎛️ FILES NOT DELETED")
     print("🎛️ PAYMENT LIST WITH TYPE SELECTION")
     print("🎛️ USER PAYMENTS WITH FILE")
     print("=" * 50)
