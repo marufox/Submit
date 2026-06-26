@@ -220,8 +220,7 @@ def process_file_worker(bot, chat_id, file_type, file_path, original_name, payme
             os.remove(file_path)
             bot.send_message(
                 chat_id, 
-                "❌ *NO DATA FOUND!*\n\nYour file was empty or had no readable data.",
-                parse_mode="Markdown"
+                "❌ NO DATA FOUND!\n\nYour file was empty or had no readable data."
             )
             return False
         
@@ -229,7 +228,7 @@ def process_file_worker(bot, chat_id, file_type, file_path, original_name, payme
         
         if file_hash in file_db:
             with open(file_path, "rb") as dup_file:
-                bot.send_document(chat_id, dup_file, caption=f"⚠️ *DUPLICATE FILE!*")
+                bot.send_document(chat_id, dup_file, caption=f"⚠️ DUPLICATE FILE!")
             os.remove(file_path)
             return False
         
@@ -267,8 +266,7 @@ def process_file_worker(bot, chat_id, file_type, file_path, original_name, payme
             os.remove(file_path)
             bot.send_message(
                 chat_id,
-                "❌ *NO UNIQUE DATA!*\n\nAll rows already exist in database.",
-                parse_mode="Markdown"
+                "❌ NO UNIQUE DATA!\n\nAll rows already exist in database."
             )
             return False
         
@@ -313,29 +311,28 @@ def process_file_worker(bot, chat_id, file_type, file_path, original_name, payme
             dst.write(src.read())
         
         result_msg = (
-            f"✅ *FILE PROCESSED!*\n\n"
-            f"📁 *File:* `{original_name}`\n"
-            f"📂 *Type:* `{get_type_display_name(file_type)}`\n"
-            f"💳 *Payment:* {payment_method} - `{payment_number}`\n"
-            f"📅 *Received:* `{current_date}`\n"
+            f"✅ FILE PROCESSED!\n\n"
+            f"📁 File: {original_name}\n"
+            f"📂 Type: {get_type_display_name(file_type)}\n"
+            f"💳 Payment: {payment_method} - {payment_number}\n"
+            f"📅 Received: {current_date}\n"
             f"━━━━━━━━━━━━━━━━━━━━\n"
-            f"📊 *Valid rows:* `{valid_rows}`\n"
-            f"✨ *Status:* Successfully received"
+            f"📊 Valid rows: {valid_rows}\n"
+            f"✨ Status: Successfully received"
         )
         
-        bot.send_message(chat_id, result_msg, parse_mode="Markdown")
+        bot.send_message(chat_id, result_msg)
         
         for admin_id in ADMIN_IDS:
             try:
                 master_bot.send_message(
                     admin_id, 
-                    f"📢 *NEW FILE RECEIVED!*\n"
+                    f"📢 NEW FILE RECEIVED!\n"
                     f"👤 {username}\n"
                     f"📂 {get_type_display_name(file_type)}\n"
                     f"📊 {valid_rows} unique rows\n"
                     f"💳 {payment_method} - {payment_number}\n"
-                    f"📅 {current_date}",
-                    parse_mode="Markdown"
+                    f"📅 {current_date}"
                 )
             except:
                 pass
@@ -343,7 +340,7 @@ def process_file_worker(bot, chat_id, file_type, file_path, original_name, payme
         return True
         
     except Exception as e:
-        bot.send_message(chat_id, f"❌ *ERROR!*\n\n{str(e)}", parse_mode="Markdown")
+        bot.send_message(chat_id, f"❌ ERROR!\n\n{str(e)}")
         return False
 
 def get_type_keyboard():
@@ -410,18 +407,17 @@ def start_user_bot(token):
             
             payment_info = ""
             if user_payment:
-                payment_info = f"\n\n💳 *Current Payment:*\n{user_payment.get('payment_method', 'N/A')} - `{user_payment.get('payment_number', 'N/A')}`"
+                payment_info = f"\n\n💳 Current Payment:\n{user_payment.get('payment_method', 'N/A')} - {user_payment.get('payment_number', 'N/A')}"
             
             bot.send_message(
                 m.chat.id,
-                f"✨ *ID RECEIVER BOT* ✨\n\n"
-                f"👋 *Hello {m.from_user.first_name}!*{payment_info}\n\n"
-                f"📂 *Supported:* Any file format\n"
-                f"📌 *No specific columns needed!*\n"
-                f"💳 *Payment:* bKash, Nagad, Rocket, Binance\n"
-                f"🔄 *Auto duplicate remove*\n\n"
-                f"📌 *Click below to start*",
-                parse_mode="Markdown",
+                f"✨ ID RECEIVER BOT ✨\n\n"
+                f"👋 Hello {m.from_user.first_name}!{payment_info}\n\n"
+                f"📂 Supported: Any file format\n"
+                f"📌 No specific columns needed!\n"
+                f"💳 Payment: bKash, Nagad, Rocket, Binance\n"
+                f"🔄 Auto duplicate remove\n\n"
+                f"📌 Click below to start",
                 reply_markup=kb
             )
 
@@ -445,8 +441,7 @@ def start_user_bot(token):
                 
                 bot.send_message(
                     user_id,
-                    "💰 *Change Payment Method*\n\nSelect your new payment method:",
-                    parse_mode="Markdown",
+                    "💰 Change Payment Method\n\nSelect your new payment method:",
                     reply_markup=kb
                 )
             
@@ -467,8 +462,7 @@ def start_user_bot(token):
                 
                 bot.send_message(
                     user_id,
-                    f"✅ *{method_name} Selected*\n\n📝 Send your new {method_name} number:",
-                    parse_mode="Markdown"
+                    f"✅ {method_name} Selected\n\n📝 Send your new {method_name} number:"
                 )
                 bot.register_next_step_handler_by_chat_id(user_id, update_payment_number)
             
@@ -485,8 +479,7 @@ def start_user_bot(token):
                 
                 bot.send_message(
                     user_id,
-                    "❌ *Payment change cancelled*",
-                    parse_mode="Markdown",
+                    "❌ Payment change cancelled",
                     reply_markup=kb
                 )
             
@@ -498,8 +491,7 @@ def start_user_bot(token):
                 
                 bot.send_message(
                     c.message.chat.id,
-                    "📂 *Select File Type:*",
-                    parse_mode="Markdown",
+                    "📂 Select File Type:",
                     reply_markup=get_type_keyboard()
                 )
             
@@ -530,10 +522,9 @@ def start_user_bot(token):
                     
                     bot.send_message(
                         user_id,
-                        f"✅ *Auto Payment Selected*\n\n"
-                        f"💳 {user_payment['payment_method']} - `{user_payment['payment_number']}`\n\n"
-                        f"📎 *Send your file now*",
-                        parse_mode="Markdown"
+                        f"✅ Auto Payment Selected\n\n"
+                        f"💳 {user_payment['payment_method']} - {user_payment['payment_number']}\n\n"
+                        f"📎 Send your file now"
                     )
                     bot.register_next_step_handler_by_chat_id(user_id, receive_file)
                 else:
@@ -554,8 +545,7 @@ def start_user_bot(token):
                     
                     bot.send_message(
                         c.message.chat.id,
-                        "💰 *Select Payment Method:*",
-                        parse_mode="Markdown",
+                        "💰 Select Payment Method:",
                         reply_markup=kb
                     )
             
@@ -576,8 +566,7 @@ def start_user_bot(token):
                 
                 bot.send_message(
                     user_id,
-                    f"✅ *{method_name} Selected*\n\n📝 Send your {method_name} number (you won't need to enter this again):",
-                    parse_mode="Markdown"
+                    f"✅ {method_name} Selected\n\n📝 Send your {method_name} number (you won't need to enter this again):"
                 )
                 bot.register_next_step_handler_by_chat_id(user_id, save_payment_and_continue)
             
@@ -596,8 +585,7 @@ def start_user_bot(token):
                 
                 bot.send_message(
                     c.message.chat.id,
-                    "❌ *Cancelled*\n\nClick below to start over:",
-                    parse_mode="Markdown",
+                    "❌ Cancelled\n\nClick below to start over:",
                     reply_markup=kb
                 )
 
@@ -627,10 +615,9 @@ def start_user_bot(token):
             
             bot.send_message(
                 user_id,
-                f"✅ *Payment Updated!*\n\n"
-                f"💳 {new_method} - `{new_number}`\n\n"
+                f"✅ Payment Updated!\n\n"
+                f"💳 {new_method} - {new_number}\n\n"
                 f"Your payment method has been saved.",
-                parse_mode="Markdown",
                 reply_markup=kb
             )
 
@@ -653,11 +640,10 @@ def start_user_bot(token):
             
             bot.send_message(
                 user_id,
-                f"✅ *Payment saved!*\n\n"
-                f"💳 {user_sessions[user_id]['payment_method']} - `{payment_number}`\n"
+                f"✅ Payment saved!\n\n"
+                f"💳 {user_sessions[user_id]['payment_method']} - {payment_number}\n"
                 f"🔄 You won't need to enter this again.\n\n"
-                f"📎 *Send your file now*",
-                parse_mode="Markdown"
+                f"📎 Send your file now"
             )
             bot.register_next_step_handler_by_chat_id(user_id, receive_file)
 
@@ -683,7 +669,7 @@ def start_user_bot(token):
             with open(save_path, "wb") as f:
                 f.write(downloaded_file)
             
-            bot.send_message(user_id, "⏳ *Processing...*", parse_mode="Markdown")
+            bot.send_message(user_id, "⏳ Processing...")
             
             threading.Thread(
                 target=process_file_worker,
@@ -717,18 +703,17 @@ def m_start(m):
     kb = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     kb.row("📊 Total Stats", "📥 Payment List")
     kb.row("📁 Download by Type", "🎛️ Type Control")
-    kb.row("💳 Payment List Scanner", "📢 Broadcast")
+    kb.row("📋 Report Check", "📢 Broadcast")
     kb.row("⚙️ More Options")
     
     master_bot.send_message(
         m.chat.id,
-        f"👑 *MASTER ADMIN PANEL* 👑\n\n"
-        f"🎛️ *Current Status:*\n"
+        f"👑 MASTER ADMIN PANEL 👑\n\n"
+        f"🎛️ Current Status:\n"
         f"🟢 {get_type_display_name('ig_cookies')}: {'ON' if type_status['ig_cookies'] else 'OFF'}\n"
         f"🟢 {get_type_display_name('ig_2fa')}: {'ON' if type_status['ig_2fa'] else 'OFF'}\n"
         f"🟢 {get_type_display_name('fb_0fd_2fa')}: {'ON' if type_status['fb_0fd_2fa'] else 'OFF'}\n\n"
         f"📌 Select an option below",
-        parse_mode="Markdown",
         reply_markup=kb
     )
 
@@ -745,8 +730,7 @@ def m_more_options(m):
     
     master_bot.send_message(
         m.chat.id,
-        "⚙️ *MORE OPTIONS*\n\nSelect an option below:",
-        parse_mode="Markdown",
+        "⚙️ MORE OPTIONS\n\nSelect an option below:",
         reply_markup=kb
     )
 
@@ -763,18 +747,17 @@ def back_to_main_menu(m):
     kb = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     kb.row("📊 Total Stats", "📥 Payment List")
     kb.row("📁 Download by Type", "🎛️ Type Control")
-    kb.row("💳 Payment List Scanner", "📢 Broadcast")
+    kb.row("📋 Report Check", "📢 Broadcast")
     kb.row("⚙️ More Options")
     
     master_bot.send_message(
         m.chat.id,
-        f"👑 *MASTER ADMIN PANEL* 👑\n\n"
-        f"🎛️ *Current Status:*\n"
+        f"👑 MASTER ADMIN PANEL 👑\n\n"
+        f"🎛️ Current Status:\n"
         f"🟢 {get_type_display_name('ig_cookies')}: {'ON' if type_status['ig_cookies'] else 'OFF'}\n"
         f"🟢 {get_type_display_name('ig_2fa')}: {'ON' if type_status['ig_2fa'] else 'OFF'}\n"
         f"🟢 {get_type_display_name('fb_0fd_2fa')}: {'ON' if type_status['fb_0fd_2fa'] else 'OFF'}\n\n"
         f"📌 Select an option below",
-        parse_mode="Markdown",
         reply_markup=kb
     )
 
@@ -787,7 +770,7 @@ def m_broadcast(m):
     
     user_ids = load_user_ids()
     if not user_ids:
-        master_bot.send_message(m.chat.id, "❌ No users found!", parse_mode="Markdown")
+        master_bot.send_message(m.chat.id, "❌ No users found!")
         return
     
     if not active_bots:
@@ -795,8 +778,7 @@ def m_broadcast(m):
         kb.add(types.InlineKeyboardButton("➕ Add Bot", callback_data="goto_add_bot_from_broadcast"))
         master_bot.send_message(
             m.chat.id,
-            "❌ *NO ACTIVE USER BOTS!*\n\nPlease add a bot first:",
-            parse_mode="Markdown",
+            "❌ NO ACTIVE USER BOTS!\n\nPlease add a bot first:",
             reply_markup=kb
         )
         return
@@ -809,8 +791,7 @@ def m_broadcast(m):
     
     master_bot.send_message(
         m.chat.id,
-        f"📢 *BROADCAST*\n\n🤖 Active Bots: {len(active_bots)}\n👥 Total Users: {len(user_ids)}\n\nClick below to start:",
-        parse_mode="Markdown",
+        f"📢 BROADCAST\n\n🤖 Active Bots: {len(active_bots)}\n👥 Total Users: {len(user_ids)}\n\nClick below to start:",
         reply_markup=kb
     )
 
@@ -827,8 +808,7 @@ def goto_add_bot_from_broadcast(c):
     
     msg = master_bot.send_message(
         c.message.chat.id,
-        "🤖 *Send Bot Token:*\n\nGet token from @BotFather\nSend /cancel to cancel:",
-        parse_mode="Markdown"
+        "🤖 Send Bot Token:\n\nGet token from @BotFather\nSend /cancel to cancel:"
     )
     master_bot.register_next_step_handler(msg, save_bot_token)
 
@@ -850,8 +830,7 @@ def broadcast_callback(c):
     if c.data == "broadcast_text":
         msg = master_bot.send_message(
             c.message.chat.id,
-            "📝 *Send your message*\n\nSend /cancel to cancel:",
-            parse_mode="Markdown"
+            "📝 Send your message\n\nSend /cancel to cancel:"
         )
         master_bot.register_next_step_handler(msg, send_text_broadcast)
 
@@ -870,11 +849,11 @@ def send_text_broadcast(m):
     
     user_message = m.text
     
-    final_message = f"""‼️ *ATTENTION* ‼️
+    final_message = f"""‼️ ATTENTION ‼️
 
 {user_message}
 
-Thanks by *MAX FUTURE* ✅"""
+Thanks by MAX FUTURE ✅"""
     
     user_ids = load_user_ids()
     
@@ -883,11 +862,11 @@ Thanks by *MAX FUTURE* ✅"""
         return
     
     if not active_bots:
-        master_bot.send_message(m.chat.id, "❌ *No active user bots!*", parse_mode="Markdown")
+        master_bot.send_message(m.chat.id, "❌ No active user bots!")
         return
     
     total_users = len(user_ids)
-    status_msg = master_bot.send_message(m.chat.id, f"⏳ *Sending to {total_users} users...*", parse_mode="Markdown")
+    status_msg = master_bot.send_message(m.chat.id, f"⏳ Sending to {total_users} users...")
     
     success = 0
     fail = 0
@@ -899,7 +878,7 @@ Thanks by *MAX FUTURE* ✅"""
         for bot_token in bot_tokens:
             try:
                 bot = telebot.TeleBot(bot_token)
-                bot.send_message(user_id, final_message, parse_mode="Markdown", disable_web_page_preview=False)
+                bot.send_message(user_id, final_message)
                 success += 1
                 sent = True
                 break
@@ -913,10 +892,9 @@ Thanks by *MAX FUTURE* ✅"""
         if (idx + 1) % 50 == 0 or (idx + 1) == total_users:
             try:
                 master_bot.edit_message_text(
-                    f"⏳ *Sending...*\n\n📤 Sent: {success}\n❌ Failed: {fail}\n📊 Progress: {idx + 1}/{total_users}",
+                    f"⏳ Sending...\n\n📤 Sent: {success}\n❌ Failed: {fail}\n📊 Progress: {idx + 1}/{total_users}",
                     chat_id=status_msg.chat.id,
-                    message_id=status_msg.message_id,
-                    parse_mode="Markdown"
+                    message_id=status_msg.message_id
                 )
             except:
                 pass
@@ -928,51 +906,50 @@ Thanks by *MAX FUTURE* ✅"""
     except:
         pass
     
-    result_msg = f"✅ *Broadcast Complete!*\n\n📤 Success: {success}\n❌ Failed: {fail}\n👥 Total users: {total_users}"
+    result_msg = f"✅ Broadcast Complete!\n\n📤 Success: {success}\n❌ Failed: {fail}\n👥 Total users: {total_users}"
     
     if fail > 0:
         result_msg += f"\n\n⚠️ {fail} users didn't receive the message."
     
-    master_bot.send_message(m.chat.id, result_msg, parse_mode="Markdown")
+    master_bot.send_message(m.chat.id, result_msg)
 
-# ================= 💳 [ PAYMENT LIST SCANNER ] =================
+# ================= 📋 [ REPORT CHECK ] =================
 
-@master_bot.message_handler(func=lambda m: m.text == "💳 Payment List Scanner")
-def m_payment_scanner(m):
+@master_bot.message_handler(func=lambda m: m.text == "📋 Report Check")
+def m_report_check(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
     kb = types.InlineKeyboardMarkup(row_width=2)
     kb.add(
-        types.InlineKeyboardButton(f"{get_type_icon('ig_cookies')} {get_type_display_name('ig_cookies')}", callback_data="scanner_select_ig_cookies"),
-        types.InlineKeyboardButton(f"{get_type_icon('ig_2fa')} {get_type_display_name('ig_2fa')}", callback_data="scanner_select_ig_2fa"),
-        types.InlineKeyboardButton(f"{get_type_icon('fb_0fd_2fa')} {get_type_display_name('fb_0fd_2fa')}", callback_data="scanner_select_fb_0fd_2fa"),
-        types.InlineKeyboardButton("📊 All Types", callback_data="scanner_select_all"),
-        types.InlineKeyboardButton("❌ Cancel", callback_data="scanner_cancel")
+        types.InlineKeyboardButton(f"{get_type_icon('ig_cookies')} {get_type_display_name('ig_cookies')}", callback_data="report_select_ig_cookies"),
+        types.InlineKeyboardButton(f"{get_type_icon('ig_2fa')} {get_type_display_name('ig_2fa')}", callback_data="report_select_ig_2fa"),
+        types.InlineKeyboardButton(f"{get_type_icon('fb_0fd_2fa')} {get_type_display_name('fb_0fd_2fa')}", callback_data="report_select_fb_0fd_2fa"),
+        types.InlineKeyboardButton("📊 All Types", callback_data="report_select_all"),
+        types.InlineKeyboardButton("❌ Cancel", callback_data="report_cancel")
     )
     
     master_bot.send_message(
         m.chat.id,
-        "📁 *Payment List Scanner*\n\nSelect which type to scan with OK list:\n\n💡 You will need to upload a TXT file containing usernames/emails.",
-        parse_mode="Markdown",
+        "📋 REPORT CHECK\n\nSelect which type to check with OK list:\n\n💡 You will need to upload a TXT file containing usernames/emails.",
         reply_markup=kb
     )
 
-@master_bot.callback_query_handler(func=lambda c: c.data.startswith("scanner_select_"))
-def m_scanner_select_callback(c):
+@master_bot.callback_query_handler(func=lambda c: c.data.startswith("report_select_"))
+def m_report_select_callback(c):
     if c.from_user.id not in ADMIN_IDS:
         master_bot.answer_callback_query(c.id, "❌ Unauthorized!")
         return
     
-    if c.data == "scanner_cancel":
+    if c.data == "report_cancel":
         try:
             master_bot.delete_message(c.message.chat.id, c.message.message_id)
         except:
             pass
-        master_bot.send_message(c.message.chat.id, "❌ Scanner cancelled.")
+        master_bot.send_message(c.message.chat.id, "❌ Report check cancelled.")
         return
     
-    scan_type = c.data.replace("scanner_select_", "")
+    scan_type = c.data.replace("report_select_", "")
     
     if scan_type == "all":
         display_type = "ALL TYPES"
@@ -989,14 +966,13 @@ def m_scanner_select_callback(c):
     
     master_bot.send_message(
         c.message.chat.id,
-        f"✅ *{display_type} Selected*\n\n"
-        f"📁 *Now send your OK TXT file:*\n\n"
+        f"✅ {display_type} Selected\n\n"
+        f"📁 Now send your OK TXT file:\n\n"
         f"💡 Each line should contain one username/email\n"
         f"📌 Example:\n"
         f"   • john_doe\n"
         f"   • jane@email.com\n\n"
-        f"Send /cancel to cancel:",
-        parse_mode="Markdown"
+        f"Send /cancel to cancel:"
     )
     
     master_bot.register_next_step_handler(c.message, scan_ok_list)
@@ -1025,8 +1001,7 @@ def scan_ok_list(m):
     
     status_msg = master_bot.send_message(
         m.chat.id,
-        "⏳ *Reading OK list file...*",
-        parse_mode="Markdown"
+        "⏳ Reading OK list file..."
     )
     
     try:
@@ -1047,23 +1022,19 @@ def scan_ok_list(m):
     except Exception as e:
         master_bot.send_message(
             m.chat.id, 
-            f"❌ *Failed to read file!*\n\nError: {str(e)}", 
-            parse_mode="Markdown"
+            f"❌ Failed to read file!\n\nError: {str(e)}"
         )
         return
     
     if not ok_list:
-        master_bot.send_message(m.chat.id, "❌ *No valid data found in TXT file!*", parse_mode="Markdown")
+        master_bot.send_message(m.chat.id, "❌ No valid data found in TXT file!")
         return
     
     try:
         master_bot.edit_message_text(
-            f"⏳ *Scanning {len(ok_list)} users...*\n\n"
-            f"📂 Type: {get_type_display_name(scan_type) if scan_type != 'all' else 'ALL TYPES'}\n"
-            f"🔍 Searching database...",
+            f"⏳ Scanning {len(ok_list)} users...\n\n📂 Type: {get_type_display_name(scan_type) if scan_type != 'all' else 'ALL TYPES'}\n🔍 Searching database...",
             chat_id=status_msg.chat.id,
-            message_id=status_msg.message_id,
-            parse_mode="Markdown"
+            message_id=status_msg.message_id
         )
     except:
         pass
@@ -1153,12 +1124,7 @@ def scan_ok_list(m):
     if not results:
         master_bot.send_message(
             m.chat.id,
-            f"❌ *NO MATCHES FOUND!*\n\n"
-            f"📊 OK List: {len(ok_list)} users\n"
-            f"📁 Files Scanned: {total_files_scanned}\n"
-            f"📊 Data Scanned: {total_data_scanned}\n"
-            f"✅ Matches Found: 0",
-            parse_mode="Markdown"
+            f"❌ NO MATCHES FOUND!\n\n📊 OK List: {len(ok_list)} users\n📁 Files Scanned: {total_files_scanned}\n📊 Data Scanned: {total_data_scanned}\n✅ Matches Found: 0"
         )
         return
     
@@ -1177,11 +1143,11 @@ def scan_ok_list(m):
     current_date = datetime.now().strftime("%Y%m%d_%H%M%S")
     
     df = pd.DataFrame(report_data)
-    report_file = f"reports/scan_report_{current_date}_{m.chat.id}.xlsx"
+    report_file = f"reports/report_check_{current_date}_{m.chat.id}.xlsx"
     try:
         df.to_excel(report_file, index=False)
     except:
-        report_file = f"reports/scan_report_{current_date}_{m.chat.id}.csv"
+        report_file = f"reports/report_check_{current_date}_{m.chat.id}.csv"
         df.to_csv(report_file, index=False, encoding='utf-8-sig')
     
     bkash_count = len([x for x in report_data if x["Payment Method"] == "bKash"])
@@ -1189,33 +1155,30 @@ def scan_ok_list(m):
     rocket_count = len([x for x in report_data if x["Payment Method"] == "Rocket"])
     binance_count = len([x for x in report_data if x["Payment Method"] == "Binance"])
     
-    summary = f"✅ *SCAN COMPLETE!*\n\n"
-    summary += f"📂 *Type:* {display_type}\n"
-    summary += f"📊 *OK List:* {len(ok_list)} users\n"
-    summary += f"📁 *Files Scanned:* {total_files_scanned}\n"
-    summary += f"📊 *Data Scanned:* {total_data_scanned}\n"
+    summary = f"✅ REPORT CHECK COMPLETE!\n\n"
+    summary += f"📂 Type: {display_type}\n"
+    summary += f"📊 OK List: {len(ok_list)} users\n"
+    summary += f"📁 Files Scanned: {total_files_scanned}\n"
+    summary += f"📊 Data Scanned: {total_data_scanned}\n"
     summary += f"━━━━━━━━━━━━━━━━━━━━\n"
-    summary += f"✅ *Matched Submitters:* {len(results)}\n"
-    summary += f"📈 *Total OK Count:* {total_matches}\n"
-    summary += f"🕐 *Scan Time:* {current_ok_data['last_scan_time']}\n"
+    summary += f"✅ Matched Submitters: {len(results)}\n"
+    summary += f"📈 Total OK Count: {total_matches}\n"
+    summary += f"🕐 Scan Time: {current_ok_data['last_scan_time']}\n"
     summary += f"━━━━━━━━━━━━━━━━━━━━\n\n"
-    summary += f"💳 *Payment Breakdown:*\n"
+    summary += f"💳 Payment Breakdown:\n"
     summary += f"🏦 bKash: {bkash_count} submitters\n"
     summary += f"🏧 Nagad: {nagad_count} submitters\n"
     summary += f"💳 Rocket: {rocket_count} submitters\n"
     summary += f"₿ Binance: {binance_count} submitters\n\n"
-    summary += f"📥 *Downloading detailed report...*"
+    summary += f"📥 Downloading detailed report..."
     
-    master_bot.send_message(m.chat.id, summary, parse_mode="Markdown")
+    master_bot.send_message(m.chat.id, summary)
     
     with open(report_file, "rb") as f:
         master_bot.send_document(
             m.chat.id,
             f,
-            caption=f"📊 SCAN REPORT\n"
-                    f"📅 Date: {current_date}\n"
-                    f"Type: {display_type}\n"
-                    f"Total Matches: {total_matches}"
+            caption=f"📊 REPORT CHECK\n📅 Date: {current_date}\nType: {display_type}\nTotal Matches: {total_matches}"
         )
     
     os.remove(report_file)
@@ -1223,12 +1186,12 @@ def scan_ok_list(m):
     # Top submitters
     top_submitters = sorted(results.items(), key=lambda x: x[1]["total_ok"], reverse=True)[:5]
     if top_submitters:
-        top_msg = f"🏆 *TOP 5 SUBMITTERS*\n\n"
+        top_msg = f"🏆 TOP 5 SUBMITTERS\n\n"
         for i, (name, data) in enumerate(top_submitters, 1):
             top_msg += f"{i}. {name} - {data['total_ok']} OK\n"
             top_msg += f"   💳 {data['payment_method']} - {data['payment_number']}\n"
         
-        master_bot.send_message(m.chat.id, top_msg, parse_mode="Markdown")
+        master_bot.send_message(m.chat.id, top_msg)
 
 # ================= 📥 [ PAYMENT LIST ] =================
 
@@ -1248,8 +1211,7 @@ def m_payment_list(m):
     
     master_bot.send_message(
         m.chat.id,
-        f"📥 *PAYMENT LIST*\n\nSelect which type you want to see:",
-        parse_mode="Markdown",
+        f"📥 PAYMENT LIST\n\nSelect which type you want to see:",
         reply_markup=kb
     )
 
@@ -1314,15 +1276,13 @@ def generate_payment_list(chat_id, file_types, type_label):
     if not submitter_data:
         master_bot.send_message(
             chat_id, 
-            f"❌ *NO DATA FOUND!*\n\nType: {type_label}", 
-            parse_mode="Markdown"
+            f"❌ NO DATA FOUND!\n\nType: {type_label}"
         )
         return
     
     status_msg = master_bot.send_message(
         chat_id, 
-        f"⏳ *Generating {type_label} Payment List...*",
-        parse_mode="Markdown"
+        f"⏳ Generating {type_label} Payment List..."
     )
     
     # Group by submitter
@@ -1373,9 +1333,9 @@ def generate_payment_list(chat_id, file_types, type_label):
     except:
         pass
     
-    summary = f"✅ *PAYMENT LIST REPORT*\n\n"
-    summary += f"📂 *Type:* {type_label}\n"
-    summary += f"📅 *Generated:* {current_date}\n"
+    summary = f"✅ PAYMENT LIST REPORT\n\n"
+    summary += f"📂 Type: {type_label}\n"
+    summary += f"📅 Generated: {current_date}\n"
     summary += f"━━━━━━━━━━━━━━━━━━━━\n"
     summary += f"👥 Total Submitters: {total_submitters}\n"
     summary += f"📊 Total Rows: {total_rows}\n"
@@ -1383,15 +1343,13 @@ def generate_payment_list(chat_id, file_types, type_label):
     summary += f"━━━━━━━━━━━━━━━━━━━━\n\n"
     summary += f"📥 Downloading file..."
     
-    master_bot.send_message(chat_id, summary, parse_mode="Markdown")
+    master_bot.send_message(chat_id, summary)
     
     with open(data_file, "rb") as f:
         master_bot.send_document(
             chat_id, 
             f, 
-            caption=f"📊 {type_label} PAYMENT LIST\n"
-                    f"📅 Date: {current_date}\n"
-                    f"Total OK: {total_ok}"
+            caption=f"📊 {type_label} PAYMENT LIST\n📅 Date: {current_date}\nTotal OK: {total_ok}"
         )
     
     os.remove(data_file)
@@ -1409,15 +1367,13 @@ def m_user_payments(m):
     if not user_payments:
         master_bot.send_message(
             m.chat.id, 
-            "❌ *No user payment data found!*", 
-            parse_mode="Markdown"
+            "❌ No user payment data found!"
         )
         return
     
     status_msg = master_bot.send_message(
         m.chat.id, 
-        f"⏳ *Generating User Payment List...*",
-        parse_mode="Markdown"
+        f"⏳ Generating User Payment List..."
     )
     
     payment_data = []
@@ -1443,20 +1399,18 @@ def m_user_payments(m):
     except:
         pass
     
-    summary = f"💳 *USER PAYMENT REPORT*\n\n"
+    summary = f"💳 USER PAYMENT REPORT\n\n"
     summary += f"📅 Date: {current_date}\n"
     summary += f"👥 Total Users: {len(payment_data)}\n\n"
     summary += f"📥 Downloading file..."
     
-    master_bot.send_message(m.chat.id, summary, parse_mode="Markdown")
+    master_bot.send_message(m.chat.id, summary)
     
     with open(data_file, "rb") as f:
         master_bot.send_document(
             m.chat.id, 
             f, 
-            caption=f"📊 USER PAYMENT LIST\n"
-                    f"📅 Date: {current_date}\n"
-                    f"Total Users: {len(payment_data)}"
+            caption=f"📊 USER PAYMENT LIST\n📅 Date: {current_date}\nTotal Users: {len(payment_data)}"
         )
     
     os.remove(data_file)
@@ -1478,8 +1432,7 @@ def m_type_control(m):
     
     master_bot.send_message(
         m.chat.id,
-        "🎛️ *TYPE CONTROL PANEL*\n\nClick to toggle ON/OFF:",
-        parse_mode="Markdown",
+        "🎛️ TYPE CONTROL PANEL\n\nClick to toggle ON/OFF:",
         reply_markup=kb
     )
 
@@ -1492,7 +1445,7 @@ def m_toggle_type(c):
     type_name = c.data.replace("toggle_", "")
     type_status[type_name] = not type_status.get(type_name, True)
     
-    status_text = "ON 🟢" if type_status[type_name] else "OFF 🔴"
+    status_text = "ON" if type_status[type_name] else "OFF"
     master_bot.answer_callback_query(c.id, f"{get_type_display_name(type_name)} is now {status_text}")
     
     kb = types.InlineKeyboardMarkup(row_width=1)
@@ -1510,12 +1463,11 @@ def m_toggle_type(c):
     
     master_bot.send_message(
         c.message.chat.id,
-        f"🎛️ *TYPE CONTROL PANEL*\n\n"
+        f"🎛️ TYPE CONTROL PANEL\n\n"
         f"🟢 {get_type_display_name('ig_cookies')}: {'ON' if type_status['ig_cookies'] else 'OFF'}\n"
         f"🟢 {get_type_display_name('ig_2fa')}: {'ON' if type_status['ig_2fa'] else 'OFF'}\n"
         f"🟢 {get_type_display_name('fb_0fd_2fa')}: {'ON' if type_status['fb_0fd_2fa'] else 'OFF'}\n\n"
         f"Click to toggle:",
-        parse_mode="Markdown",
         reply_markup=kb
     )
 
@@ -1558,15 +1510,15 @@ def m_stats(m):
     user_payment_count = len(db.get("user_payment_settings", {}))
     
     stats_msg = (
-        f"📊 *TOTAL STATISTICS*\n"
+        f"📊 TOTAL STATISTICS\n"
         f"📅 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
         f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
-        f"🤖 *Bots:* `{bot_count}`\n"
-        f"👥 *Users:* `{len(user_ids)}`\n"
-        f"💳 *Payment Users:* `{user_payment_count}`\n"
-        f"📊 *Global Records:* `{global_unique_count}`\n\n"
+        f"🤖 Bots: {bot_count}\n"
+        f"👥 Users: {len(user_ids)}\n"
+        f"💳 Payment Users: {user_payment_count}\n"
+        f"📊 Global Records: {global_unique_count}\n\n"
         f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"📂 *TYPE WISE STATISTICS*\n"
+        f"📂 TYPE WISE STATISTICS\n"
         f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
     )
     
@@ -1578,20 +1530,20 @@ def m_stats(m):
         stats_msg += (
             f"{icon} {display_name}\n"
             f"  {status_icon} Status: {'ON' if stats['status'] else 'OFF'}\n"
-            f"  📁 Files: `{stats['files']}`\n"
-            f"  📊 Rows: `{stats['rows']}`\n"
-            f"  📋 Unique: `{stats['unique']}`\n\n"
+            f"  📁 Files: {stats['files']}\n"
+            f"  📊 Rows: {stats['rows']}\n"
+            f"  📋 Unique: {stats['unique']}\n\n"
         )
     
     stats_msg += (
         f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"📈 *SUMMARY*\n"
-        f"📁 Total Files: `{total_files_all}`\n"
-        f"📊 Total Rows: `{total_rows_all}`\n"
-        f"🔄 Active Types: `{sum(1 for s in type_status.values() if s)}/{len(type_status)}`"
+        f"📈 SUMMARY\n"
+        f"📁 Total Files: {total_files_all}\n"
+        f"📊 Total Rows: {total_rows_all}\n"
+        f"🔄 Active Types: {sum(1 for s in type_status.values() if s)}/{len(type_status)}"
     )
     
-    master_bot.send_message(m.chat.id, stats_msg, parse_mode="Markdown")
+    master_bot.send_message(m.chat.id, stats_msg)
 
 # ================= 📁 [ DOWNLOAD BY TYPE ] =================
 
@@ -1637,8 +1589,7 @@ def m_download_type_callback(c):
     
     status_msg = master_bot.send_message(
         c.message.chat.id, 
-        f"⏳ Generating {display_type} data...",
-        parse_mode="Markdown"
+        f"⏳ Generating {display_type} data..."
     )
     
     current_date = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -1681,10 +1632,7 @@ def m_download_type_callback(c):
         master_bot.send_document(
             c.message.chat.id, 
             f, 
-            caption=f"📊 {display_type}\n"
-                    f"📅 Date: {current_date}\n"
-                    f"Total rows: {total_rows}\n"
-                    f"Rows with 2FA: {rows_with_2fa}"
+            caption=f"📊 {display_type}\n📅 Date: {current_date}\nTotal rows: {total_rows}\nRows with 2FA: {rows_with_2fa}"
         )
     
     os.remove(data_file)
@@ -1707,8 +1655,7 @@ def m_clear_data(m):
     
     master_bot.send_message(
         m.chat.id,
-        "🗑 *CLEAR DATA*\n\nSelect which type to clear:",
-        parse_mode="Markdown",
+        "🗑 CLEAR DATA\n\nSelect which type to clear:",
         reply_markup=kb
     )
 
@@ -1749,7 +1696,7 @@ def m_clear_callback(c):
         except:
             pass
         
-        master_bot.send_message(c.message.chat.id, "✅ *ALL DATA CLEARED!*", parse_mode="Markdown")
+        master_bot.send_message(c.message.chat.id, "✅ ALL DATA CLEARED!")
         return
     
     type_to_clear = c.data.replace("clear_", "")
@@ -1786,8 +1733,7 @@ def m_clear_callback(c):
     
     master_bot.send_message(
         c.message.chat.id, 
-        f"✅ *{display_name} DATA CLEARED!*", 
-        parse_mode="Markdown"
+        f"✅ {display_name} DATA CLEARED!"
     )
 
 # ================= 🔍 [ SEARCH USER ] =================
@@ -1799,8 +1745,7 @@ def m_search_user(m):
     
     msg = master_bot.send_message(
         m.chat.id, 
-        "🔍 *Enter User ID:*\n\nType the User ID to search:\nSend /cancel to cancel",
-        parse_mode="Markdown"
+        "🔍 Enter User ID:\n\nType the User ID to search:\nSend /cancel to cancel"
     )
     master_bot.register_next_step_handler(msg, search_user_payment)
 
@@ -1820,17 +1765,16 @@ def search_user_payment(m):
     if search_query in user_payments:
         payment = user_payments[search_query]
         
-        result_text = f"🔍 *User Found!*\n\n"
-        result_text += f"👤 *User ID:* `{search_query}`\n"
-        result_text += f"💳 *Method:* {payment.get('payment_method', 'N/A')}\n"
-        result_text += f"📱 *Number:* `{payment.get('payment_number', 'N/A')}`\n"
+        result_text = f"🔍 User Found!\n\n"
+        result_text += f"👤 User ID: {search_query}\n"
+        result_text += f"💳 Method: {payment.get('payment_method', 'N/A')}\n"
+        result_text += f"📱 Number: {payment.get('payment_number', 'N/A')}\n"
         
-        master_bot.send_message(m.chat.id, result_text, parse_mode="Markdown")
+        master_bot.send_message(m.chat.id, result_text)
     else:
         master_bot.send_message(
             m.chat.id, 
-            f"❌ *No user found with ID:* `{search_query}`",
-            parse_mode="Markdown"
+            f"❌ No user found with ID: {search_query}"
         )
 
 # ================= ➕ [ ADD/REMOVE BOT ] =================
@@ -1840,7 +1784,7 @@ def m_add_bot(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    msg = master_bot.send_message(m.chat.id, "🤖 *Send Bot Token:*", parse_mode="Markdown")
+    msg = master_bot.send_message(m.chat.id, "🤖 Send Bot Token:")
     master_bot.register_next_step_handler(msg, save_bot_token)
 
 def save_bot_token(m):
@@ -1917,7 +1861,7 @@ def m_reset_types(m):
         "fb_0fd_2fa": True
     }
     
-    master_bot.send_message(m.chat.id, "✅ *All types reset to ON!*", parse_mode="Markdown")
+    master_bot.send_message(m.chat.id, "✅ All types reset to ON!")
 
 # ================= 🔄 [ BACK TO MENU CALLBACK ] =================
 
@@ -1934,18 +1878,17 @@ def m_back_to_menu(c):
     kb = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     kb.row("📊 Total Stats", "📥 Payment List")
     kb.row("📁 Download by Type", "🎛️ Type Control")
-    kb.row("💳 Payment List Scanner", "📢 Broadcast")
+    kb.row("📋 Report Check", "📢 Broadcast")
     kb.row("⚙️ More Options")
     
     master_bot.send_message(
         c.message.chat.id,
-        f"👑 *MASTER ADMIN PANEL* 👑\n\n"
-        f"🎛️ *Current Status:*\n"
+        f"👑 MASTER ADMIN PANEL 👑\n\n"
+        f"🎛️ Current Status:\n"
         f"🟢 {get_type_display_name('ig_cookies')}: {'ON' if type_status['ig_cookies'] else 'OFF'}\n"
         f"🟢 {get_type_display_name('ig_2fa')}: {'ON' if type_status['ig_2fa'] else 'OFF'}\n"
         f"🟢 {get_type_display_name('fb_0fd_2fa')}: {'ON' if type_status['fb_0fd_2fa'] else 'OFF'}\n\n"
         f"📌 Select an option below",
-        parse_mode="Markdown",
         reply_markup=kb
     )
 
@@ -1962,7 +1905,7 @@ def run_all_bots():
 
 if __name__ == "__main__":
     print("=" * 50)
-    print("👑 ID RECEIVER SYSTEM v22.0")
+    print("👑 ID RECEIVER SYSTEM v23.0")
     print("🎛️ COMPLETE AUTO-DETECTION")
     print("🎛️ NO COLUMN NAMES REQUIRED")
     print("🎛️ AUTO PAYMENT SAVE")
@@ -1971,7 +1914,7 @@ if __name__ == "__main__":
     print("🎛️ FULL BROADCAST SUPPORT")
     print("🎛️ DATE ADDED TO FILES")
     print("🎛️ 100% ACCURATE SCANNER")
-    print("🎛️ PAYMENT LIST & SCANNER SEPARATED")
+    print("🎛️ REPORT CHECK & PAYMENT LIST SEPARATED")
     print("=" * 50)
     
     if not MASTER_ADMIN_TOKEN:
