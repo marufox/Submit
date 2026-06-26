@@ -694,13 +694,17 @@ def start_user_bot(token):
 
 # ================= 👑 [ 5. MASTER PANEL - FIXED ] =================
 
-# Store only bot reply message IDs to delete
+# Store only bot reply message IDs to delete (excluding main menu)
 bot_reply_messages = {}
+main_menu_id = {}
 
 def delete_previous_bot_replies(chat_id):
-    """Delete only bot's reply messages, keep user messages and main menu"""
+    """Delete only bot's reply messages, keep main menu and user messages"""
     if chat_id in bot_reply_messages:
         for msg_id in bot_reply_messages[chat_id]:
+            # Don't delete main menu
+            if chat_id in main_menu_id and msg_id == main_menu_id[chat_id]:
+                continue
             try:
                 master_bot.delete_message(chat_id, msg_id)
             except:
@@ -713,7 +717,7 @@ def m_start(m):
         master_bot.send_message(m.chat.id, "❌ Unauthorized!")
         return
     
-    # Clear previous bot replies (keep user messages)
+    # Clear previous bot replies (keep main menu)
     delete_previous_bot_replies(m.chat.id)
     
     kb = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
@@ -733,7 +737,10 @@ def m_start(m):
         reply_markup=kb
     )
     
-    # Store main menu message
+    # Store main menu message ID
+    main_menu_id[m.chat.id] = msg.message_id
+    
+    # Store in bot replies (but won't be deleted)
     if m.chat.id not in bot_reply_messages:
         bot_reply_messages[m.chat.id] = []
     bot_reply_messages[m.chat.id].append(msg.message_id)
@@ -743,7 +750,7 @@ def m_more_options(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Clear previous bot replies (keep user messages and main menu)
+    # Clear previous bot replies (keep main menu)
     delete_previous_bot_replies(m.chat.id)
     
     kb = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
@@ -767,7 +774,7 @@ def back_to_main_menu(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Clear previous bot replies (keep user messages)
+    # Clear previous bot replies (keep main menu)
     delete_previous_bot_replies(m.chat.id)
     
     kb = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
@@ -787,6 +794,9 @@ def back_to_main_menu(m):
         reply_markup=kb
     )
     
+    # Update main menu ID
+    main_menu_id[m.chat.id] = msg.message_id
+    
     if m.chat.id not in bot_reply_messages:
         bot_reply_messages[m.chat.id] = []
     bot_reply_messages[m.chat.id].append(msg.message_id)
@@ -796,7 +806,7 @@ def m_back_to_menu_callback(c):
     if c.from_user.id not in ADMIN_IDS:
         return
     
-    # Clear previous bot replies (keep user messages)
+    # Clear previous bot replies (keep main menu)
     delete_previous_bot_replies(c.message.chat.id)
     
     try:
@@ -821,6 +831,9 @@ def m_back_to_menu_callback(c):
         reply_markup=kb
     )
     
+    # Update main menu ID
+    main_menu_id[c.message.chat.id] = msg.message_id
+    
     if c.message.chat.id not in bot_reply_messages:
         bot_reply_messages[c.message.chat.id] = []
     bot_reply_messages[c.message.chat.id].append(msg.message_id)
@@ -832,7 +845,7 @@ def m_broadcast(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Clear previous bot replies (keep user messages)
+    # Clear previous bot replies (keep main menu)
     delete_previous_bot_replies(m.chat.id)
     
     user_ids = load_user_ids()
@@ -997,7 +1010,7 @@ def m_report_check(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Clear previous bot replies (keep user messages)
+    # Clear previous bot replies (keep main menu)
     delete_previous_bot_replies(m.chat.id)
     
     kb = types.InlineKeyboardMarkup(row_width=2)
@@ -1276,7 +1289,7 @@ def m_payment_list(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Clear previous bot replies (keep user messages)
+    # Clear previous bot replies (keep main menu)
     delete_previous_bot_replies(m.chat.id)
     
     kb = types.InlineKeyboardMarkup(row_width=2)
@@ -1460,7 +1473,7 @@ def m_user_payments(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Clear previous bot replies (keep user messages)
+    # Clear previous bot replies (keep main menu)
     delete_previous_bot_replies(m.chat.id)
     
     db = load_db()
@@ -1538,7 +1551,7 @@ def m_stats(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Clear previous bot replies (keep user messages)
+    # Clear previous bot replies (keep main menu)
     delete_previous_bot_replies(m.chat.id)
     
     db = load_db()
@@ -1618,7 +1631,7 @@ def m_type_control(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Clear previous bot replies (keep user messages)
+    # Clear previous bot replies (keep main menu)
     delete_previous_bot_replies(m.chat.id)
     
     kb = types.InlineKeyboardMarkup(row_width=1)
@@ -1651,7 +1664,7 @@ def m_toggle_type(c):
     status_text = "ON" if type_status[type_name] else "OFF"
     master_bot.answer_callback_query(c.id, f"{get_type_display_name(type_name)} is now {status_text}")
     
-    # Clear previous bot replies (keep user messages)
+    # Clear previous bot replies (keep main menu)
     delete_previous_bot_replies(c.message.chat.id)
     
     try:
@@ -1688,7 +1701,7 @@ def m_download_by_type(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Clear previous bot replies (keep user messages)
+    # Clear previous bot replies (keep main menu)
     delete_previous_bot_replies(m.chat.id)
     
     kb = types.InlineKeyboardMarkup(row_width=2)
@@ -1790,7 +1803,7 @@ def m_clear_data(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Clear previous bot replies (keep user messages)
+    # Clear previous bot replies (keep main menu)
     delete_previous_bot_replies(m.chat.id)
     
     kb = types.InlineKeyboardMarkup(row_width=2)
@@ -1905,7 +1918,7 @@ def m_search_user(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Clear previous bot replies (keep user messages)
+    # Clear previous bot replies (keep main menu)
     delete_previous_bot_replies(m.chat.id)
     
     msg = master_bot.send_message(
@@ -1955,7 +1968,7 @@ def m_add_bot(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Clear previous bot replies (keep user messages)
+    # Clear previous bot replies (keep main menu)
     delete_previous_bot_replies(m.chat.id)
     
     msg = master_bot.send_message(m.chat.id, "🤖 Send Bot Token:")
@@ -1988,7 +2001,7 @@ def m_remove_bot(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Clear previous bot replies (keep user messages)
+    # Clear previous bot replies (keep main menu)
     delete_previous_bot_replies(m.chat.id)
     
     db = load_db()
@@ -2034,7 +2047,7 @@ def m_reset_types(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Clear previous bot replies (keep user messages)
+    # Clear previous bot replies (keep main menu)
     delete_previous_bot_replies(m.chat.id)
     
     global type_status
@@ -2062,10 +2075,10 @@ def run_all_bots():
 
 if __name__ == "__main__":
     print("=" * 50)
-    print("👑 ID RECEIVER SYSTEM v27.0")
+    print("👑 ID RECEIVER SYSTEM v28.0")
     print("🎛️ CLEAN REPORT CHECK")
     print("🎛️ NO TOP 5 SUBMITTERS")
-    print("🎛️ MAIN MENU KEEPS")
+    print("🎛️ MAIN MENU NEVER DELETED")
     print("🎛️ USER MESSAGES KEPT")
     print("🎛️ ONLY BOT REPLIES DELETED")
     print("🎛️ FILES NOT DELETED")
