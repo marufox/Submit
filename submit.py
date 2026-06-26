@@ -694,8 +694,18 @@ def start_user_bot(token):
 
 # ================= 👑 [ 5. MASTER PANEL - FIXED ] =================
 
-# Store message IDs to delete
-last_bot_messages = {}
+# Store only bot reply message IDs to delete
+bot_reply_messages = {}
+
+def delete_previous_bot_replies(chat_id):
+    """Delete only bot's reply messages, keep user messages and main menu"""
+    if chat_id in bot_reply_messages:
+        for msg_id in bot_reply_messages[chat_id]:
+            try:
+                master_bot.delete_message(chat_id, msg_id)
+            except:
+                pass
+        bot_reply_messages[chat_id] = []
 
 @master_bot.message_handler(commands=['start'])
 def m_start(m):
@@ -703,14 +713,8 @@ def m_start(m):
         master_bot.send_message(m.chat.id, "❌ Unauthorized!")
         return
     
-    # Delete previous bot messages
-    if m.chat.id in last_bot_messages:
-        for msg_id in last_bot_messages[m.chat.id]:
-            try:
-                master_bot.delete_message(m.chat.id, msg_id)
-            except:
-                pass
-        last_bot_messages[m.chat.id] = []
+    # Clear previous bot replies (keep user messages)
+    delete_previous_bot_replies(m.chat.id)
     
     kb = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     kb.row("📊 Total Stats", "📥 Payment List")
@@ -730,29 +734,17 @@ def m_start(m):
     )
     
     # Store main menu message
-    if m.chat.id not in last_bot_messages:
-        last_bot_messages[m.chat.id] = []
-    last_bot_messages[m.chat.id].append(msg.message_id)
+    if m.chat.id not in bot_reply_messages:
+        bot_reply_messages[m.chat.id] = []
+    bot_reply_messages[m.chat.id].append(msg.message_id)
 
 @master_bot.message_handler(func=lambda m: m.text == "⚙️ More Options")
 def m_more_options(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Delete previous bot messages (except main menu)
-    if m.chat.id in last_bot_messages:
-        for msg_id in last_bot_messages[m.chat.id]:
-            try:
-                master_bot.delete_message(m.chat.id, msg_id)
-            except:
-                pass
-        last_bot_messages[m.chat.id] = []
-    
-    # Delete user command
-    try:
-        master_bot.delete_message(m.chat.id, m.message_id)
-    except:
-        pass
+    # Clear previous bot replies (keep user messages and main menu)
+    delete_previous_bot_replies(m.chat.id)
     
     kb = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     kb.row("➕ Add Bot", "❌ Remove Bot")
@@ -766,29 +758,17 @@ def m_more_options(m):
         reply_markup=kb
     )
     
-    if m.chat.id not in last_bot_messages:
-        last_bot_messages[m.chat.id] = []
-    last_bot_messages[m.chat.id].append(msg.message_id)
+    if m.chat.id not in bot_reply_messages:
+        bot_reply_messages[m.chat.id] = []
+    bot_reply_messages[m.chat.id].append(msg.message_id)
 
 @master_bot.message_handler(func=lambda m: m.text == "🔙 Back to Main Menu")
 def back_to_main_menu(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Delete previous bot messages
-    if m.chat.id in last_bot_messages:
-        for msg_id in last_bot_messages[m.chat.id]:
-            try:
-                master_bot.delete_message(m.chat.id, msg_id)
-            except:
-                pass
-        last_bot_messages[m.chat.id] = []
-    
-    # Delete user command
-    try:
-        master_bot.delete_message(m.chat.id, m.message_id)
-    except:
-        pass
+    # Clear previous bot replies (keep user messages)
+    delete_previous_bot_replies(m.chat.id)
     
     kb = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     kb.row("📊 Total Stats", "📥 Payment List")
@@ -807,23 +787,17 @@ def back_to_main_menu(m):
         reply_markup=kb
     )
     
-    if m.chat.id not in last_bot_messages:
-        last_bot_messages[m.chat.id] = []
-    last_bot_messages[m.chat.id].append(msg.message_id)
+    if m.chat.id not in bot_reply_messages:
+        bot_reply_messages[m.chat.id] = []
+    bot_reply_messages[m.chat.id].append(msg.message_id)
 
 @master_bot.callback_query_handler(func=lambda c: c.data == "back_to_menu")
 def m_back_to_menu_callback(c):
     if c.from_user.id not in ADMIN_IDS:
         return
     
-    # Delete previous bot messages
-    if c.message.chat.id in last_bot_messages:
-        for msg_id in last_bot_messages[c.message.chat.id]:
-            try:
-                master_bot.delete_message(c.message.chat.id, msg_id)
-            except:
-                pass
-        last_bot_messages[c.message.chat.id] = []
+    # Clear previous bot replies (keep user messages)
+    delete_previous_bot_replies(c.message.chat.id)
     
     try:
         master_bot.delete_message(c.message.chat.id, c.message.message_id)
@@ -847,9 +821,9 @@ def m_back_to_menu_callback(c):
         reply_markup=kb
     )
     
-    if c.message.chat.id not in last_bot_messages:
-        last_bot_messages[c.message.chat.id] = []
-    last_bot_messages[c.message.chat.id].append(msg.message_id)
+    if c.message.chat.id not in bot_reply_messages:
+        bot_reply_messages[c.message.chat.id] = []
+    bot_reply_messages[c.message.chat.id].append(msg.message_id)
 
 # ================= 📢 [ BROADCAST ] =================
 
@@ -858,27 +832,15 @@ def m_broadcast(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Delete previous bot messages (except main menu)
-    if m.chat.id in last_bot_messages:
-        for msg_id in last_bot_messages[m.chat.id]:
-            try:
-                master_bot.delete_message(m.chat.id, msg_id)
-            except:
-                pass
-        last_bot_messages[m.chat.id] = []
-    
-    # Delete user command
-    try:
-        master_bot.delete_message(m.chat.id, m.message_id)
-    except:
-        pass
+    # Clear previous bot replies (keep user messages)
+    delete_previous_bot_replies(m.chat.id)
     
     user_ids = load_user_ids()
     if not user_ids:
         msg = master_bot.send_message(m.chat.id, "❌ No users found!")
-        if m.chat.id not in last_bot_messages:
-            last_bot_messages[m.chat.id] = []
-        last_bot_messages[m.chat.id].append(msg.message_id)
+        if m.chat.id not in bot_reply_messages:
+            bot_reply_messages[m.chat.id] = []
+        bot_reply_messages[m.chat.id].append(msg.message_id)
         return
     
     if not active_bots:
@@ -889,9 +851,9 @@ def m_broadcast(m):
             "❌ NO ACTIVE USER BOTS!\n\nPlease add a bot first:",
             reply_markup=kb
         )
-        if m.chat.id not in last_bot_messages:
-            last_bot_messages[m.chat.id] = []
-        last_bot_messages[m.chat.id].append(msg.message_id)
+        if m.chat.id not in bot_reply_messages:
+            bot_reply_messages[m.chat.id] = []
+        bot_reply_messages[m.chat.id].append(msg.message_id)
         return
     
     kb = types.InlineKeyboardMarkup(row_width=1)
@@ -906,9 +868,9 @@ def m_broadcast(m):
         reply_markup=kb
     )
     
-    if m.chat.id not in last_bot_messages:
-        last_bot_messages[m.chat.id] = []
-    last_bot_messages[m.chat.id].append(msg.message_id)
+    if m.chat.id not in bot_reply_messages:
+        bot_reply_messages[m.chat.id] = []
+    bot_reply_messages[m.chat.id].append(msg.message_id)
 
 @master_bot.callback_query_handler(func=lambda c: c.data == "goto_add_bot_from_broadcast")
 def goto_add_bot_from_broadcast(c):
@@ -1035,20 +997,8 @@ def m_report_check(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Delete previous bot messages (except main menu)
-    if m.chat.id in last_bot_messages:
-        for msg_id in last_bot_messages[m.chat.id]:
-            try:
-                master_bot.delete_message(m.chat.id, msg_id)
-            except:
-                pass
-        last_bot_messages[m.chat.id] = []
-    
-    # Delete user command
-    try:
-        master_bot.delete_message(m.chat.id, m.message_id)
-    except:
-        pass
+    # Clear previous bot replies (keep user messages)
+    delete_previous_bot_replies(m.chat.id)
     
     kb = types.InlineKeyboardMarkup(row_width=2)
     kb.add(
@@ -1065,9 +1015,9 @@ def m_report_check(m):
         reply_markup=kb
     )
     
-    if m.chat.id not in last_bot_messages:
-        last_bot_messages[m.chat.id] = []
-    last_bot_messages[m.chat.id].append(msg.message_id)
+    if m.chat.id not in bot_reply_messages:
+        bot_reply_messages[m.chat.id] = []
+    bot_reply_messages[m.chat.id].append(msg.message_id)
 
 @master_bot.callback_query_handler(func=lambda c: c.data.startswith("report_select_"))
 def m_report_select_callback(c):
@@ -1081,9 +1031,9 @@ def m_report_select_callback(c):
         except:
             pass
         msg = master_bot.send_message(c.message.chat.id, "❌ Report check cancelled.")
-        if c.message.chat.id not in last_bot_messages:
-            last_bot_messages[c.message.chat.id] = []
-        last_bot_messages[c.message.chat.id].append(msg.message_id)
+        if c.message.chat.id not in bot_reply_messages:
+            bot_reply_messages[c.message.chat.id] = []
+        bot_reply_messages[c.message.chat.id].append(msg.message_id)
         return
     
     scan_type = c.data.replace("report_select_", "")
@@ -1093,7 +1043,6 @@ def m_report_select_callback(c):
     else:
         display_type = get_type_display_name(scan_type)
     
-    # Store in session
     user_sessions[c.message.chat.id] = {"scan_type": scan_type}
     
     try:
@@ -1112,9 +1061,9 @@ def m_report_select_callback(c):
         f"Send /cancel to cancel:"
     )
     
-    if c.message.chat.id not in last_bot_messages:
-        last_bot_messages[c.message.chat.id] = []
-    last_bot_messages[c.message.chat.id].append(msg.message_id)
+    if c.message.chat.id not in bot_reply_messages:
+        bot_reply_messages[c.message.chat.id] = []
+    bot_reply_messages[c.message.chat.id].append(msg.message_id)
     
     master_bot.register_next_step_handler(c.message, scan_ok_list_clean)
 
@@ -1129,19 +1078,19 @@ def scan_ok_list_clean(m):
     
     if not m.document:
         msg = master_bot.send_message(m.chat.id, "❌ Please send a TXT file!")
-        if m.chat.id not in last_bot_messages:
-            last_bot_messages[m.chat.id] = []
-        last_bot_messages[m.chat.id].append(msg.message_id)
+        if m.chat.id not in bot_reply_messages:
+            bot_reply_messages[m.chat.id] = []
+        bot_reply_messages[m.chat.id].append(msg.message_id)
         return
     
     if not m.document.file_name.endswith('.txt'):
         msg = master_bot.send_message(m.chat.id, "❌ Only TXT files are supported!")
-        if m.chat.id not in last_bot_messages:
-            last_bot_messages[m.chat.id] = []
-        last_bot_messages[m.chat.id].append(msg.message_id)
+        if m.chat.id not in bot_reply_messages:
+            bot_reply_messages[m.chat.id] = []
+        bot_reply_messages[m.chat.id].append(msg.message_id)
         return
     
-    # Don't delete the file message
+    # Don't delete user's file message
     try:
         master_bot.delete_message(m.chat.id, m.message_id)
     except:
@@ -1274,9 +1223,9 @@ def scan_ok_list_clean(m):
             m.chat.id,
             f"❌ NO MATCHES FOUND!\n\n📊 OK List: {len(ok_list)} users\n📁 Files Scanned: {total_files_scanned}\n📊 Data Scanned: {total_data_scanned}\n✅ Matches Found: 0"
         )
-        if m.chat.id not in last_bot_messages:
-            last_bot_messages[m.chat.id] = []
-        last_bot_messages[m.chat.id].append(msg.message_id)
+        if m.chat.id not in bot_reply_messages:
+            bot_reply_messages[m.chat.id] = []
+        bot_reply_messages[m.chat.id].append(msg.message_id)
         return
     
     display_type = get_type_display_name(scan_type) if scan_type != 'all' else "ALL TYPES"
@@ -1316,9 +1265,9 @@ def scan_ok_list_clean(m):
     report += f"₿ Binance: {binance_count} submitters"
     
     msg = master_bot.send_message(m.chat.id, report)
-    if m.chat.id not in last_bot_messages:
-        last_bot_messages[m.chat.id] = []
-    last_bot_messages[m.chat.id].append(msg.message_id)
+    if m.chat.id not in bot_reply_messages:
+        bot_reply_messages[m.chat.id] = []
+    bot_reply_messages[m.chat.id].append(msg.message_id)
 
 # ================= 📥 [ PAYMENT LIST - WITH TYPE SELECTION & FILE ] =================
 
@@ -1327,20 +1276,8 @@ def m_payment_list(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Delete previous bot messages (except main menu)
-    if m.chat.id in last_bot_messages:
-        for msg_id in last_bot_messages[m.chat.id]:
-            try:
-                master_bot.delete_message(m.chat.id, msg_id)
-            except:
-                pass
-        last_bot_messages[m.chat.id] = []
-    
-    # Delete user command
-    try:
-        master_bot.delete_message(m.chat.id, m.message_id)
-    except:
-        pass
+    # Clear previous bot replies (keep user messages)
+    delete_previous_bot_replies(m.chat.id)
     
     kb = types.InlineKeyboardMarkup(row_width=2)
     kb.add(
@@ -1357,9 +1294,9 @@ def m_payment_list(m):
         reply_markup=kb
     )
     
-    if m.chat.id not in last_bot_messages:
-        last_bot_messages[m.chat.id] = []
-    last_bot_messages[m.chat.id].append(msg.message_id)
+    if m.chat.id not in bot_reply_messages:
+        bot_reply_messages[m.chat.id] = []
+    bot_reply_messages[m.chat.id].append(msg.message_id)
 
 @master_bot.callback_query_handler(func=lambda c: c.data.startswith("paylist_select_"))
 def m_paylist_select_callback(c):
@@ -1373,9 +1310,9 @@ def m_paylist_select_callback(c):
         except:
             pass
         msg = master_bot.send_message(c.message.chat.id, "❌ Cancelled.")
-        if c.message.chat.id not in last_bot_messages:
-            last_bot_messages[c.message.chat.id] = []
-        last_bot_messages[c.message.chat.id].append(msg.message_id)
+        if c.message.chat.id not in bot_reply_messages:
+            bot_reply_messages[c.message.chat.id] = []
+        bot_reply_messages[c.message.chat.id].append(msg.message_id)
         return
     
     selected_type = c.data.replace("paylist_select_", "")
@@ -1427,9 +1364,9 @@ def generate_payment_list_file(chat_id, file_types, type_label):
             chat_id, 
             f"❌ NO DATA FOUND!\n\nType: {type_label}"
         )
-        if chat_id not in last_bot_messages:
-            last_bot_messages[chat_id] = []
-        last_bot_messages[chat_id].append(msg.message_id)
+        if chat_id not in bot_reply_messages:
+            bot_reply_messages[chat_id] = []
+        bot_reply_messages[chat_id].append(msg.message_id)
         return
     
     status_msg = master_bot.send_message(
@@ -1498,9 +1435,9 @@ def generate_payment_list_file(chat_id, file_types, type_label):
     summary += f"📥 Downloading file..."
     
     msg = master_bot.send_message(chat_id, summary)
-    if chat_id not in last_bot_messages:
-        last_bot_messages[chat_id] = []
-    last_bot_messages[chat_id].append(msg.message_id)
+    if chat_id not in bot_reply_messages:
+        bot_reply_messages[chat_id] = []
+    bot_reply_messages[chat_id].append(msg.message_id)
     
     # Send file
     with open(data_file, "rb") as f:
@@ -1523,20 +1460,8 @@ def m_user_payments(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Delete previous bot messages (except main menu)
-    if m.chat.id in last_bot_messages:
-        for msg_id in last_bot_messages[m.chat.id]:
-            try:
-                master_bot.delete_message(m.chat.id, msg_id)
-            except:
-                pass
-        last_bot_messages[m.chat.id] = []
-    
-    # Delete user command
-    try:
-        master_bot.delete_message(m.chat.id, m.message_id)
-    except:
-        pass
+    # Clear previous bot replies (keep user messages)
+    delete_previous_bot_replies(m.chat.id)
     
     db = load_db()
     user_payments = db.get("user_payment_settings", {})
@@ -1546,9 +1471,9 @@ def m_user_payments(m):
             m.chat.id, 
             "❌ No user payment data found!"
         )
-        if m.chat.id not in last_bot_messages:
-            last_bot_messages[m.chat.id] = []
-        last_bot_messages[m.chat.id].append(msg.message_id)
+        if m.chat.id not in bot_reply_messages:
+            bot_reply_messages[m.chat.id] = []
+        bot_reply_messages[m.chat.id].append(msg.message_id)
         return
     
     status_msg = master_bot.send_message(
@@ -1589,9 +1514,9 @@ def m_user_payments(m):
     summary += f"📥 Downloading file..."
     
     msg = master_bot.send_message(m.chat.id, summary)
-    if m.chat.id not in last_bot_messages:
-        last_bot_messages[m.chat.id] = []
-    last_bot_messages[m.chat.id].append(msg.message_id)
+    if m.chat.id not in bot_reply_messages:
+        bot_reply_messages[m.chat.id] = []
+    bot_reply_messages[m.chat.id].append(msg.message_id)
     
     # Send file
     with open(data_file, "rb") as f:
@@ -1613,20 +1538,8 @@ def m_stats(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Delete previous bot messages (except main menu)
-    if m.chat.id in last_bot_messages:
-        for msg_id in last_bot_messages[m.chat.id]:
-            try:
-                master_bot.delete_message(m.chat.id, msg_id)
-            except:
-                pass
-        last_bot_messages[m.chat.id] = []
-    
-    # Delete user command
-    try:
-        master_bot.delete_message(m.chat.id, m.message_id)
-    except:
-        pass
+    # Clear previous bot replies (keep user messages)
+    delete_previous_bot_replies(m.chat.id)
     
     db = load_db()
     
@@ -1694,9 +1607,9 @@ def m_stats(m):
     )
     
     msg = master_bot.send_message(m.chat.id, stats_msg)
-    if m.chat.id not in last_bot_messages:
-        last_bot_messages[m.chat.id] = []
-    last_bot_messages[m.chat.id].append(msg.message_id)
+    if m.chat.id not in bot_reply_messages:
+        bot_reply_messages[m.chat.id] = []
+    bot_reply_messages[m.chat.id].append(msg.message_id)
 
 # ================= 🎛️ [ TYPE CONTROL ] =================
 
@@ -1705,20 +1618,8 @@ def m_type_control(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Delete previous bot messages (except main menu)
-    if m.chat.id in last_bot_messages:
-        for msg_id in last_bot_messages[m.chat.id]:
-            try:
-                master_bot.delete_message(m.chat.id, msg_id)
-            except:
-                pass
-        last_bot_messages[m.chat.id] = []
-    
-    # Delete user command
-    try:
-        master_bot.delete_message(m.chat.id, m.message_id)
-    except:
-        pass
+    # Clear previous bot replies (keep user messages)
+    delete_previous_bot_replies(m.chat.id)
     
     kb = types.InlineKeyboardMarkup(row_width=1)
     kb.add(
@@ -1734,9 +1635,9 @@ def m_type_control(m):
         reply_markup=kb
     )
     
-    if m.chat.id not in last_bot_messages:
-        last_bot_messages[m.chat.id] = []
-    last_bot_messages[m.chat.id].append(msg.message_id)
+    if m.chat.id not in bot_reply_messages:
+        bot_reply_messages[m.chat.id] = []
+    bot_reply_messages[m.chat.id].append(msg.message_id)
 
 @master_bot.callback_query_handler(func=lambda c: c.data.startswith("toggle_"))
 def m_toggle_type(c):
@@ -1750,14 +1651,8 @@ def m_toggle_type(c):
     status_text = "ON" if type_status[type_name] else "OFF"
     master_bot.answer_callback_query(c.id, f"{get_type_display_name(type_name)} is now {status_text}")
     
-    # Delete previous bot messages (except main menu)
-    if c.message.chat.id in last_bot_messages:
-        for msg_id in last_bot_messages[c.message.chat.id]:
-            try:
-                master_bot.delete_message(c.message.chat.id, msg_id)
-            except:
-                pass
-        last_bot_messages[c.message.chat.id] = []
+    # Clear previous bot replies (keep user messages)
+    delete_previous_bot_replies(c.message.chat.id)
     
     try:
         master_bot.delete_message(c.message.chat.id, c.message.message_id)
@@ -1782,9 +1677,9 @@ def m_toggle_type(c):
         reply_markup=kb
     )
     
-    if c.message.chat.id not in last_bot_messages:
-        last_bot_messages[c.message.chat.id] = []
-    last_bot_messages[c.message.chat.id].append(msg.message_id)
+    if c.message.chat.id not in bot_reply_messages:
+        bot_reply_messages[c.message.chat.id] = []
+    bot_reply_messages[c.message.chat.id].append(msg.message_id)
 
 # ================= 📁 [ DOWNLOAD BY TYPE ] =================
 
@@ -1793,20 +1688,8 @@ def m_download_by_type(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Delete previous bot messages (except main menu)
-    if m.chat.id in last_bot_messages:
-        for msg_id in last_bot_messages[m.chat.id]:
-            try:
-                master_bot.delete_message(m.chat.id, msg_id)
-            except:
-                pass
-        last_bot_messages[m.chat.id] = []
-    
-    # Delete user command
-    try:
-        master_bot.delete_message(m.chat.id, m.message_id)
-    except:
-        pass
+    # Clear previous bot replies (keep user messages)
+    delete_previous_bot_replies(m.chat.id)
     
     kb = types.InlineKeyboardMarkup(row_width=2)
     kb.add(
@@ -1817,9 +1700,9 @@ def m_download_by_type(m):
     )
     msg = master_bot.send_message(m.chat.id, "Select type:", reply_markup=kb)
     
-    if m.chat.id not in last_bot_messages:
-        last_bot_messages[m.chat.id] = []
-    last_bot_messages[m.chat.id].append(msg.message_id)
+    if m.chat.id not in bot_reply_messages:
+        bot_reply_messages[m.chat.id] = []
+    bot_reply_messages[m.chat.id].append(msg.message_id)
 
 @master_bot.callback_query_handler(func=lambda c: c.data.startswith("dltype_"))
 def m_download_type_callback(c):
@@ -1829,9 +1712,9 @@ def m_download_type_callback(c):
         except:
             pass
         msg = master_bot.send_message(c.message.chat.id, "Cancelled.")
-        if c.message.chat.id not in last_bot_messages:
-            last_bot_messages[c.message.chat.id] = []
-        last_bot_messages[c.message.chat.id].append(msg.message_id)
+        if c.message.chat.id not in bot_reply_messages:
+            bot_reply_messages[c.message.chat.id] = []
+        bot_reply_messages[c.message.chat.id].append(msg.message_id)
         return
     
     file_type = c.data.replace("dltype_", "")
@@ -1907,20 +1790,8 @@ def m_clear_data(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Delete previous bot messages (except main menu)
-    if m.chat.id in last_bot_messages:
-        for msg_id in last_bot_messages[m.chat.id]:
-            try:
-                master_bot.delete_message(m.chat.id, msg_id)
-            except:
-                pass
-        last_bot_messages[m.chat.id] = []
-    
-    # Delete user command
-    try:
-        master_bot.delete_message(m.chat.id, m.message_id)
-    except:
-        pass
+    # Clear previous bot replies (keep user messages)
+    delete_previous_bot_replies(m.chat.id)
     
     kb = types.InlineKeyboardMarkup(row_width=2)
     kb.add(
@@ -1937,9 +1808,9 @@ def m_clear_data(m):
         reply_markup=kb
     )
     
-    if m.chat.id not in last_bot_messages:
-        last_bot_messages[m.chat.id] = []
-    last_bot_messages[m.chat.id].append(msg.message_id)
+    if m.chat.id not in bot_reply_messages:
+        bot_reply_messages[m.chat.id] = []
+    bot_reply_messages[m.chat.id].append(msg.message_id)
 
 @master_bot.callback_query_handler(func=lambda c: c.data.startswith("clear_"))
 def m_clear_callback(c):
@@ -1953,9 +1824,9 @@ def m_clear_callback(c):
         except:
             pass
         msg = master_bot.send_message(c.message.chat.id, "❌ Cancelled.")
-        if c.message.chat.id not in last_bot_messages:
-            last_bot_messages[c.message.chat.id] = []
-        last_bot_messages[c.message.chat.id].append(msg.message_id)
+        if c.message.chat.id not in bot_reply_messages:
+            bot_reply_messages[c.message.chat.id] = []
+        bot_reply_messages[c.message.chat.id].append(msg.message_id)
         return
     
     db = load_db()
@@ -1982,9 +1853,9 @@ def m_clear_callback(c):
             pass
         
         msg = master_bot.send_message(c.message.chat.id, "✅ ALL DATA CLEARED!")
-        if c.message.chat.id not in last_bot_messages:
-            last_bot_messages[c.message.chat.id] = []
-        last_bot_messages[c.message.chat.id].append(msg.message_id)
+        if c.message.chat.id not in bot_reply_messages:
+            bot_reply_messages[c.message.chat.id] = []
+        bot_reply_messages[c.message.chat.id].append(msg.message_id)
         return
     
     type_to_clear = c.data.replace("clear_", "")
@@ -2023,9 +1894,9 @@ def m_clear_callback(c):
         c.message.chat.id, 
         f"✅ {display_name} DATA CLEARED!"
     )
-    if c.message.chat.id not in last_bot_messages:
-        last_bot_messages[c.message.chat.id] = []
-    last_bot_messages[c.message.chat.id].append(msg.message_id)
+    if c.message.chat.id not in bot_reply_messages:
+        bot_reply_messages[c.message.chat.id] = []
+    bot_reply_messages[c.message.chat.id].append(msg.message_id)
 
 # ================= 🔍 [ SEARCH USER ] =================
 
@@ -2034,20 +1905,8 @@ def m_search_user(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Delete previous bot messages (except main menu)
-    if m.chat.id in last_bot_messages:
-        for msg_id in last_bot_messages[m.chat.id]:
-            try:
-                master_bot.delete_message(m.chat.id, msg_id)
-            except:
-                pass
-        last_bot_messages[m.chat.id] = []
-    
-    # Delete user command
-    try:
-        master_bot.delete_message(m.chat.id, m.message_id)
-    except:
-        pass
+    # Clear previous bot replies (keep user messages)
+    delete_previous_bot_replies(m.chat.id)
     
     msg = master_bot.send_message(
         m.chat.id, 
@@ -2077,17 +1936,17 @@ def search_user_payment(m):
         result_text += f"📱 Number: {payment.get('payment_number', 'N/A')}\n"
         
         msg = master_bot.send_message(m.chat.id, result_text)
-        if m.chat.id not in last_bot_messages:
-            last_bot_messages[m.chat.id] = []
-        last_bot_messages[m.chat.id].append(msg.message_id)
+        if m.chat.id not in bot_reply_messages:
+            bot_reply_messages[m.chat.id] = []
+        bot_reply_messages[m.chat.id].append(msg.message_id)
     else:
         msg = master_bot.send_message(
             m.chat.id, 
             f"❌ No user found with ID: {search_query}"
         )
-        if m.chat.id not in last_bot_messages:
-            last_bot_messages[m.chat.id] = []
-        last_bot_messages[m.chat.id].append(msg.message_id)
+        if m.chat.id not in bot_reply_messages:
+            bot_reply_messages[m.chat.id] = []
+        bot_reply_messages[m.chat.id].append(msg.message_id)
 
 # ================= ➕ [ ADD/REMOVE BOT ] =================
 
@@ -2096,20 +1955,8 @@ def m_add_bot(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Delete previous bot messages (except main menu)
-    if m.chat.id in last_bot_messages:
-        for msg_id in last_bot_messages[m.chat.id]:
-            try:
-                master_bot.delete_message(m.chat.id, msg_id)
-            except:
-                pass
-        last_bot_messages[m.chat.id] = []
-    
-    # Delete user command
-    try:
-        master_bot.delete_message(m.chat.id, m.message_id)
-    except:
-        pass
+    # Clear previous bot replies (keep user messages)
+    delete_previous_bot_replies(m.chat.id)
     
     msg = master_bot.send_message(m.chat.id, "🤖 Send Bot Token:")
     master_bot.register_next_step_handler(msg, save_bot_token)
@@ -2130,9 +1977,9 @@ def save_bot_token(m):
         save_db(db)
         threading.Thread(target=start_user_bot, args=(token,), daemon=True).start()
         msg = master_bot.send_message(m.chat.id, "✅ Bot added!")
-        if m.chat.id not in last_bot_messages:
-            last_bot_messages[m.chat.id] = []
-        last_bot_messages[m.chat.id].append(msg.message_id)
+        if m.chat.id not in bot_reply_messages:
+            bot_reply_messages[m.chat.id] = []
+        bot_reply_messages[m.chat.id].append(msg.message_id)
     else:
         master_bot.send_message(m.chat.id, "⚠️ Bot already exists!")
 
@@ -2141,20 +1988,8 @@ def m_remove_bot(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Delete previous bot messages (except main menu)
-    if m.chat.id in last_bot_messages:
-        for msg_id in last_bot_messages[m.chat.id]:
-            try:
-                master_bot.delete_message(m.chat.id, msg_id)
-            except:
-                pass
-        last_bot_messages[m.chat.id] = []
-    
-    # Delete user command
-    try:
-        master_bot.delete_message(m.chat.id, m.message_id)
-    except:
-        pass
+    # Clear previous bot replies (keep user messages)
+    delete_previous_bot_replies(m.chat.id)
     
     db = load_db()
     if not db["tokens"]:
@@ -2199,20 +2034,8 @@ def m_reset_types(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Delete previous bot messages (except main menu)
-    if m.chat.id in last_bot_messages:
-        for msg_id in last_bot_messages[m.chat.id]:
-            try:
-                master_bot.delete_message(m.chat.id, msg_id)
-            except:
-                pass
-        last_bot_messages[m.chat.id] = []
-    
-    # Delete user command
-    try:
-        master_bot.delete_message(m.chat.id, m.message_id)
-    except:
-        pass
+    # Clear previous bot replies (keep user messages)
+    delete_previous_bot_replies(m.chat.id)
     
     global type_status
     type_status = {
@@ -2222,9 +2045,9 @@ def m_reset_types(m):
     }
     
     msg = master_bot.send_message(m.chat.id, "✅ All types reset to ON!")
-    if m.chat.id not in last_bot_messages:
-        last_bot_messages[m.chat.id] = []
-    last_bot_messages[m.chat.id].append(msg.message_id)
+    if m.chat.id not in bot_reply_messages:
+        bot_reply_messages[m.chat.id] = []
+    bot_reply_messages[m.chat.id].append(msg.message_id)
 
 # ================= 🔄 [ MAIN ] =================
 
@@ -2239,14 +2062,13 @@ def run_all_bots():
 
 if __name__ == "__main__":
     print("=" * 50)
-    print("👑 ID RECEIVER SYSTEM v26.0")
+    print("👑 ID RECEIVER SYSTEM v27.0")
     print("🎛️ CLEAN REPORT CHECK")
     print("🎛️ NO TOP 5 SUBMITTERS")
     print("🎛️ MAIN MENU KEEPS")
+    print("🎛️ USER MESSAGES KEPT")
+    print("🎛️ ONLY BOT REPLIES DELETED")
     print("🎛️ FILES NOT DELETED")
-    print("🎛️ BOT MESSAGES DELETED")
-    print("🎛️ PAYMENT LIST WITH TYPE SELECTION")
-    print("🎛️ USER PAYMENTS WITH FILE")
     print("=" * 50)
     
     if not MASTER_ADMIN_TOKEN:
