@@ -700,6 +700,12 @@ def m_start(m):
         master_bot.send_message(m.chat.id, "❌ Unauthorized!")
         return
     
+    # Delete previous messages
+    try:
+        master_bot.delete_message(m.chat.id, m.message_id - 1)
+    except:
+        pass
+    
     kb = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     kb.row("📊 Total Stats", "📥 Payment List")
     kb.row("📁 Download by Type", "🎛️ Type Control")
@@ -722,6 +728,13 @@ def m_more_options(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
+    # Delete previous messages
+    try:
+        master_bot.delete_message(m.chat.id, m.message_id - 1)
+        master_bot.delete_message(m.chat.id, m.message_id)
+    except:
+        pass
+    
     kb = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     kb.row("➕ Add Bot", "❌ Remove Bot")
     kb.row("🔄 Reset All Types", "🗑 Clear Data")
@@ -739,8 +752,10 @@ def back_to_main_menu(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
+    # Delete previous messages
     try:
         master_bot.delete_message(m.chat.id, m.message_id - 1)
+        master_bot.delete_message(m.chat.id, m.message_id)
     except:
         pass
     
@@ -767,6 +782,13 @@ def back_to_main_menu(m):
 def m_broadcast(m):
     if m.from_user.id not in ADMIN_IDS:
         return
+    
+    # Delete previous messages
+    try:
+        master_bot.delete_message(m.chat.id, m.message_id - 1)
+        master_bot.delete_message(m.chat.id, m.message_id)
+    except:
+        pass
     
     user_ids = load_user_ids()
     if not user_ids:
@@ -913,12 +935,19 @@ Thanks by MAX FUTURE ✅"""
     
     master_bot.send_message(m.chat.id, result_msg)
 
-# ================= 📋 [ REPORT CHECK ] =================
+# ================= 📋 [ REPORT CHECK - CLEAN ] =================
 
 @master_bot.message_handler(func=lambda m: m.text == "📋 Report Check")
 def m_report_check(m):
     if m.from_user.id not in ADMIN_IDS:
         return
+    
+    # Delete previous messages
+    try:
+        master_bot.delete_message(m.chat.id, m.message_id - 1)
+        master_bot.delete_message(m.chat.id, m.message_id)
+    except:
+        pass
     
     kb = types.InlineKeyboardMarkup(row_width=2)
     kb.add(
@@ -975,10 +1004,10 @@ def m_report_select_callback(c):
         f"Send /cancel to cancel:"
     )
     
-    master_bot.register_next_step_handler(c.message, scan_ok_list)
+    master_bot.register_next_step_handler(c.message, scan_ok_list_clean)
 
-def scan_ok_list(m):
-    """OK List Scanner - Matches TXT data with database"""
+def scan_ok_list_clean(m):
+    """OK List Scanner - Clean Report Only, No File Download"""
     if m.from_user.id not in ADMIN_IDS:
         return
     
@@ -1130,75 +1159,55 @@ def scan_ok_list(m):
     
     display_type = get_type_display_name(scan_type) if scan_type != 'all' else "ALL TYPES"
     
-    report_data = []
+    # Payment breakdown
+    bkash_count = 0
+    nagad_count = 0
+    rocket_count = 0
+    binance_count = 0
+    
     for submitted_by, data in results.items():
-        report_data.append({
-            "Submitted By": submitted_by,
-            "Payment Method": data["payment_method"],
-            "Payment Number": data["payment_number"],
-            "File Type": get_type_display_name(data["file_type"]),
-            "Total OK": data["total_ok"]
-        })
+        payment_method = data["payment_method"]
+        if payment_method == "bKash":
+            bkash_count += 1
+        elif payment_method == "Nagad":
+            nagad_count += 1
+        elif payment_method == "Rocket":
+            rocket_count += 1
+        elif payment_method == "Binance":
+            binance_count += 1
     
-    current_date = datetime.now().strftime("%Y%m%d_%H%M%S")
+    # Create clean report - NO TOP 5
+    report = f"✅ REPORT CHECK COMPLETE!\n\n"
+    report += f"📂 Type: {display_type}\n"
+    report += f"📊 OK List: {len(ok_list)} users\n"
+    report += f"📁 Files Scanned: {total_files_scanned}\n"
+    report += f"📊 Data Scanned: {total_data_scanned}\n"
+    report += f"━━━━━━━━━━━━━━━━━━━━\n"
+    report += f"✅ Matched Submitters: {len(results)}\n"
+    report += f"📈 Total OK Count: {total_matches}\n"
+    report += f"🕐 Scan Time: {current_ok_data['last_scan_time']}\n"
+    report += f"━━━━━━━━━━━━━━━━━━━━\n\n"
+    report += f"💳 Payment Breakdown:\n"
+    report += f"🏦 bKash: {bkash_count} submitters\n"
+    report += f"🏧 Nagad: {nagad_count} submitters\n"
+    report += f"💳 Rocket: {rocket_count} submitters\n"
+    report += f"₿ Binance: {binance_count} submitters"
     
-    df = pd.DataFrame(report_data)
-    report_file = f"reports/report_check_{current_date}_{m.chat.id}.xlsx"
-    try:
-        df.to_excel(report_file, index=False)
-    except:
-        report_file = f"reports/report_check_{current_date}_{m.chat.id}.csv"
-        df.to_csv(report_file, index=False, encoding='utf-8-sig')
-    
-    bkash_count = len([x for x in report_data if x["Payment Method"] == "bKash"])
-    nagad_count = len([x for x in report_data if x["Payment Method"] == "Nagad"])
-    rocket_count = len([x for x in report_data if x["Payment Method"] == "Rocket"])
-    binance_count = len([x for x in report_data if x["Payment Method"] == "Binance"])
-    
-    summary = f"✅ REPORT CHECK COMPLETE!\n\n"
-    summary += f"📂 Type: {display_type}\n"
-    summary += f"📊 OK List: {len(ok_list)} users\n"
-    summary += f"📁 Files Scanned: {total_files_scanned}\n"
-    summary += f"📊 Data Scanned: {total_data_scanned}\n"
-    summary += f"━━━━━━━━━━━━━━━━━━━━\n"
-    summary += f"✅ Matched Submitters: {len(results)}\n"
-    summary += f"📈 Total OK Count: {total_matches}\n"
-    summary += f"🕐 Scan Time: {current_ok_data['last_scan_time']}\n"
-    summary += f"━━━━━━━━━━━━━━━━━━━━\n\n"
-    summary += f"💳 Payment Breakdown:\n"
-    summary += f"🏦 bKash: {bkash_count} submitters\n"
-    summary += f"🏧 Nagad: {nagad_count} submitters\n"
-    summary += f"💳 Rocket: {rocket_count} submitters\n"
-    summary += f"₿ Binance: {binance_count} submitters\n\n"
-    summary += f"📥 Downloading detailed report..."
-    
-    master_bot.send_message(m.chat.id, summary)
-    
-    with open(report_file, "rb") as f:
-        master_bot.send_document(
-            m.chat.id,
-            f,
-            caption=f"📊 REPORT CHECK\n📅 Date: {current_date}\nType: {display_type}\nTotal Matches: {total_matches}"
-        )
-    
-    os.remove(report_file)
-    
-    # Top submitters
-    top_submitters = sorted(results.items(), key=lambda x: x[1]["total_ok"], reverse=True)[:5]
-    if top_submitters:
-        top_msg = f"🏆 TOP 5 SUBMITTERS\n\n"
-        for i, (name, data) in enumerate(top_submitters, 1):
-            top_msg += f"{i}. {name} - {data['total_ok']} OK\n"
-            top_msg += f"   💳 {data['payment_method']} - {data['payment_number']}\n"
-        
-        master_bot.send_message(m.chat.id, top_msg)
+    master_bot.send_message(m.chat.id, report)
 
-# ================= 📥 [ PAYMENT LIST ] =================
+# ================= 📥 [ PAYMENT LIST - WITH TYPE SELECTION & FILE ] =================
 
 @master_bot.message_handler(func=lambda m: m.text == "📥 Payment List")
 def m_payment_list(m):
     if m.from_user.id not in ADMIN_IDS:
         return
+    
+    # Delete previous messages
+    try:
+        master_bot.delete_message(m.chat.id, m.message_id - 1)
+        master_bot.delete_message(m.chat.id, m.message_id)
+    except:
+        pass
     
     kb = types.InlineKeyboardMarkup(row_width=2)
     kb.add(
@@ -1243,10 +1252,10 @@ def m_paylist_select_callback(c):
     except:
         pass
     
-    generate_payment_list(c.message.chat.id, file_types, type_label)
+    generate_payment_list_file(c.message.chat.id, file_types, type_label)
 
-def generate_payment_list(chat_id, file_types, type_label):
-    """Generate payment list with OK counts"""
+def generate_payment_list_file(chat_id, file_types, type_label):
+    """Generate payment list with file download"""
     db = load_db()
     
     submitter_data = []
@@ -1314,14 +1323,15 @@ def generate_payment_list(chat_id, file_types, type_label):
     final_data.sort(key=lambda x: x["ok_count"], reverse=True)
     
     df = pd.DataFrame(final_data)
+    df = df[["submitted_by", "payment_method", "payment_number", "total_rows", "ok_count"]]
     
     current_date = datetime.now().strftime("%Y%m%d_%H%M%S")
     
-    data_file = f"reports/payment_list_{current_date}_{chat_id}.xlsx"
+    data_file = f"reports/payment_list_{type_label.replace(' ', '_')}_{current_date}_{chat_id}.xlsx"
     try:
         df.to_excel(data_file, index=False)
     except:
-        data_file = f"reports/payment_list_{current_date}_{chat_id}.csv"
+        data_file = f"reports/payment_list_{type_label.replace(' ', '_')}_{current_date}_{chat_id}.csv"
         df.to_csv(data_file, index=False, encoding='utf-8-sig')
     
     total_submitters = len(final_data)
@@ -1333,6 +1343,7 @@ def generate_payment_list(chat_id, file_types, type_label):
     except:
         pass
     
+    # Send summary
     summary = f"✅ PAYMENT LIST REPORT\n\n"
     summary += f"📂 Type: {type_label}\n"
     summary += f"📅 Generated: {current_date}\n"
@@ -1345,21 +1356,33 @@ def generate_payment_list(chat_id, file_types, type_label):
     
     master_bot.send_message(chat_id, summary)
     
+    # Send file
     with open(data_file, "rb") as f:
         master_bot.send_document(
             chat_id, 
             f, 
-            caption=f"📊 {type_label} PAYMENT LIST\n📅 Date: {current_date}\nTotal OK: {total_ok}"
+            caption=f"📊 {type_label} PAYMENT LIST\n"
+                    f"📅 Date: {current_date}\n"
+                    f"👥 Total Submitters: {total_submitters}\n"
+                    f"✅ Total OK: {total_ok}\n\n"
+                    f"Columns: submitted_by, payment_method, payment_number, total_rows, ok_count"
         )
     
     os.remove(data_file)
 
-# ================= 💳 [ USER PAYMENTS ] =================
+# ================= 💳 [ USER PAYMENTS - WITH FILE ] =================
 
 @master_bot.message_handler(func=lambda m: m.text == "💳 User Payments")
 def m_user_payments(m):
     if m.from_user.id not in ADMIN_IDS:
         return
+    
+    # Delete previous messages
+    try:
+        master_bot.delete_message(m.chat.id, m.message_id - 1)
+        master_bot.delete_message(m.chat.id, m.message_id)
+    except:
+        pass
     
     db = load_db()
     user_payments = db.get("user_payment_settings", {})
@@ -1373,13 +1396,14 @@ def m_user_payments(m):
     
     status_msg = master_bot.send_message(
         m.chat.id, 
-        f"⏳ Generating User Payment List..."
+        "⏳ Generating User Payment List..."
     )
     
     payment_data = []
     for user_id, payment_info in user_payments.items():
         payment_data.append({
             "User ID": user_id,
+            "Username": "Unknown",
             "Method": payment_info.get("payment_method", "N/A"),
             "Number": payment_info.get("payment_number", "N/A")
         })
@@ -1387,6 +1411,8 @@ def m_user_payments(m):
     current_date = datetime.now().strftime("%Y%m%d_%H%M%S")
     
     df = pd.DataFrame(payment_data)
+    df = df[["User ID", "Username", "Method", "Number"]]
+    
     data_file = f"reports/user_payments_{current_date}_{m.chat.id}.xlsx"
     try:
         df.to_excel(data_file, index=False)
@@ -1400,8 +1426,9 @@ def m_user_payments(m):
         pass
     
     summary = f"💳 USER PAYMENT REPORT\n\n"
-    summary += f"📅 Date: {current_date}\n"
-    summary += f"👥 Total Users: {len(payment_data)}\n\n"
+    summary += f"📅 Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+    summary += f"👥 Total Users: {len(payment_data)}\n"
+    summary += f"━━━━━━━━━━━━━━━━━━━━\n"
     summary += f"📥 Downloading file..."
     
     master_bot.send_message(m.chat.id, summary)
@@ -1410,7 +1437,10 @@ def m_user_payments(m):
         master_bot.send_document(
             m.chat.id, 
             f, 
-            caption=f"📊 USER PAYMENT LIST\n📅 Date: {current_date}\nTotal Users: {len(payment_data)}"
+            caption=f"📊 USER PAYMENT LIST\n"
+                    f"📅 Date: {current_date}\n"
+                    f"👥 Total Users: {len(payment_data)}\n\n"
+                    f"Columns: User ID, Username, Method, Number"
         )
     
     os.remove(data_file)
@@ -1421,6 +1451,13 @@ def m_user_payments(m):
 def m_type_control(m):
     if m.from_user.id not in ADMIN_IDS:
         return
+    
+    # Delete previous messages
+    try:
+        master_bot.delete_message(m.chat.id, m.message_id - 1)
+        master_bot.delete_message(m.chat.id, m.message_id)
+    except:
+        pass
     
     kb = types.InlineKeyboardMarkup(row_width=1)
     kb.add(
@@ -1448,6 +1485,11 @@ def m_toggle_type(c):
     status_text = "ON" if type_status[type_name] else "OFF"
     master_bot.answer_callback_query(c.id, f"{get_type_display_name(type_name)} is now {status_text}")
     
+    try:
+        master_bot.delete_message(c.message.chat.id, c.message.message_id)
+    except:
+        pass
+    
     kb = types.InlineKeyboardMarkup(row_width=1)
     kb.add(
         types.InlineKeyboardButton(f"{'🟢' if type_status['ig_cookies'] else '🔴'} {get_type_display_name('ig_cookies')}", callback_data="toggle_ig_cookies"),
@@ -1455,11 +1497,6 @@ def m_toggle_type(c):
         types.InlineKeyboardButton(f"{'🟢' if type_status['fb_0fd_2fa'] else '🔴'} {get_type_display_name('fb_0fd_2fa')}", callback_data="toggle_fb_0fd_2fa"),
         types.InlineKeyboardButton("🔙 Back", callback_data="back_to_menu")
     )
-    
-    try:
-        master_bot.delete_message(c.message.chat.id, c.message.message_id)
-    except:
-        pass
     
     master_bot.send_message(
         c.message.chat.id,
@@ -1477,6 +1514,13 @@ def m_toggle_type(c):
 def m_stats(m):
     if m.from_user.id not in ADMIN_IDS:
         return
+    
+    # Delete previous messages
+    try:
+        master_bot.delete_message(m.chat.id, m.message_id - 1)
+        master_bot.delete_message(m.chat.id, m.message_id)
+    except:
+        pass
     
     db = load_db()
     
@@ -1551,6 +1595,13 @@ def m_stats(m):
 def m_download_by_type(m):
     if m.from_user.id not in ADMIN_IDS:
         return
+    
+    # Delete previous messages
+    try:
+        master_bot.delete_message(m.chat.id, m.message_id - 1)
+        master_bot.delete_message(m.chat.id, m.message_id)
+    except:
+        pass
     
     kb = types.InlineKeyboardMarkup(row_width=2)
     kb.add(
@@ -1643,6 +1694,13 @@ def m_download_type_callback(c):
 def m_clear_data(m):
     if m.from_user.id not in ADMIN_IDS:
         return
+    
+    # Delete previous messages
+    try:
+        master_bot.delete_message(m.chat.id, m.message_id - 1)
+        master_bot.delete_message(m.chat.id, m.message_id)
+    except:
+        pass
     
     kb = types.InlineKeyboardMarkup(row_width=2)
     kb.add(
@@ -1743,6 +1801,13 @@ def m_search_user(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
+    # Delete previous messages
+    try:
+        master_bot.delete_message(m.chat.id, m.message_id - 1)
+        master_bot.delete_message(m.chat.id, m.message_id)
+    except:
+        pass
+    
     msg = master_bot.send_message(
         m.chat.id, 
         "🔍 Enter User ID:\n\nType the User ID to search:\nSend /cancel to cancel"
@@ -1784,6 +1849,13 @@ def m_add_bot(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
+    # Delete previous messages
+    try:
+        master_bot.delete_message(m.chat.id, m.message_id - 1)
+        master_bot.delete_message(m.chat.id, m.message_id)
+    except:
+        pass
+    
     msg = master_bot.send_message(m.chat.id, "🤖 Send Bot Token:")
     master_bot.register_next_step_handler(msg, save_bot_token)
 
@@ -1810,6 +1882,13 @@ def save_bot_token(m):
 def m_remove_bot(m):
     if m.from_user.id not in ADMIN_IDS:
         return
+    
+    # Delete previous messages
+    try:
+        master_bot.delete_message(m.chat.id, m.message_id - 1)
+        master_bot.delete_message(m.chat.id, m.message_id)
+    except:
+        pass
     
     db = load_db()
     if not db["tokens"]:
@@ -1853,6 +1932,13 @@ def m_remove_callback(c):
 def m_reset_types(m):
     if m.from_user.id not in ADMIN_IDS:
         return
+    
+    # Delete previous messages
+    try:
+        master_bot.delete_message(m.chat.id, m.message_id - 1)
+        master_bot.delete_message(m.chat.id, m.message_id)
+    except:
+        pass
     
     global type_status
     type_status = {
@@ -1905,16 +1991,12 @@ def run_all_bots():
 
 if __name__ == "__main__":
     print("=" * 50)
-    print("👑 ID RECEIVER SYSTEM v23.0")
-    print("🎛️ COMPLETE AUTO-DETECTION")
-    print("🎛️ NO COLUMN NAMES REQUIRED")
-    print("🎛️ AUTO PAYMENT SAVE")
-    print("🎛️ TYPE-WISE CLEAR DATA")
-    print("🎛️ CUSTOM TYPE NAMES")
-    print("🎛️ FULL BROADCAST SUPPORT")
-    print("🎛️ DATE ADDED TO FILES")
-    print("🎛️ 100% ACCURATE SCANNER")
-    print("🎛️ REPORT CHECK & PAYMENT LIST SEPARATED")
+    print("👑 ID RECEIVER SYSTEM v24.0")
+    print("🎛️ CLEAN REPORT CHECK")
+    print("🎛️ NO TOP 5 SUBMITTERS")
+    print("🎛️ AUTO DELETE HISTORY")
+    print("🎛️ PAYMENT LIST WITH TYPE SELECTION")
+    print("🎛️ USER PAYMENTS WITH FILE")
     print("=" * 50)
     
     if not MASTER_ADMIN_TOKEN:
