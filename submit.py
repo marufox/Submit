@@ -1023,7 +1023,7 @@ Thanks by *MAX FUTURE* ✅"""
     master_bot.send_message(m.chat.id, result_msg, parse_mode="Markdown")
 
 
-# ================= 💳 [ PAYMENT LIST SCANNER - TYPE CONTROL FREE ] =================
+# ================= 💳 [ PAYMENT LIST SCANNER - FIXED ] =================
 
 @master_bot.message_handler(func=lambda m: m.text == "💳 Payment List Scanner")
 def m_payment_scanner(m):
@@ -1041,7 +1041,7 @@ def m_payment_scanner(m):
     
     master_bot.send_message(
         m.chat.id,
-        "📁 *Which type to scan?*\n\nSelect an option below:",
+        "📁 *Payment List Scanner*\n\nSelect which type to scan with OK list:\n\n💡 You will need to upload a TXT file containing usernames/emails to check against the database.",
         parse_mode="Markdown",
         reply_markup=kb
     )
@@ -1058,7 +1058,7 @@ def m_scan_type_callback(c):
             master_bot.delete_message(c.message.chat.id, c.message.message_id)
         except:
             pass
-        master_bot.send_message(c.message.chat.id, "❌ Cancelled.")
+        master_bot.send_message(c.message.chat.id, "❌ Scanner cancelled.")
         return
     
     scan_type = c.data.replace("scan_type_", "")
@@ -1068,7 +1068,67 @@ def m_scan_type_callback(c):
     else:
         display_type = get_type_display_name(scan_type)
     
+    # Store scan type in session
     user_sessions[c.message.chat.id] = {"scan_type": scan_type}
+    
+    try:
+        master_bot.delete_message(c.message.chat.id, c.message.message_id)
+    except:
+        pass
+    
+    # Show payment methods first or directly ask for file?
+    kb = types.InlineKeyboardMarkup(row_width=2)
+    kb.add(
+        types.InlineKeyboardButton("🏦 bKash", callback_data="scan_pay_bkash"),
+        types.InlineKeyboardButton("🏧 Nagad", callback_data="scan_pay_nagad"),
+        types.InlineKeyboardButton("💳 Rocket", callback_data="scan_pay_rocket"),
+        types.InlineKeyboardButton("₿ Binance", callback_data="scan_pay_binance"),
+        types.InlineKeyboardButton("📊 All Payments", callback_data="scan_pay_all"),
+        types.InlineKeyboardButton("❌ Cancel", callback_data="scan_pay_cancel")
+    )
+    
+    master_bot.send_message(
+        c.message.chat.id,
+        f"✅ *{display_type} Selected*\n\n"
+        f"💳 *Filter by Payment Method*\n\n"
+        f"Select which payment method to filter, or 'All Payments' for all:",
+        parse_mode="Markdown",
+        reply_markup=kb
+    )
+
+
+@master_bot.callback_query_handler(func=lambda c: c.data.startswith("scan_pay_"))
+def m_scan_pay_callback(c):
+    if c.from_user.id not in ADMIN_IDS:
+        master_bot.answer_callback_query(c.id, "❌ Unauthorized!")
+        return
+    
+    if c.data == "scan_pay_cancel":
+        try:
+            master_bot.delete_message(c.message.chat.id, c.message.message_id)
+        except:
+            pass
+        user_sessions.pop(c.message.chat.id, None)
+        master_bot.send_message(c.message.chat.id, "❌ Scanner cancelled.")
+        return
+    
+    payment_filter = c.data.replace("scan_pay_", "")
+    
+    if payment_filter == "all":
+        payment_filter = "All"
+    elif payment_filter == "bkash":
+        payment_filter = "bKash"
+    elif payment_filter == "nagad":
+        payment_filter = "Nagad"
+    elif payment_filter == "rocket":
+        payment_filter = "Rocket"
+    elif payment_filter == "binance":
+        payment_filter = "Binance"
+    
+    # Store payment filter in session
+    if c.message.chat.id not in user_sessions:
+        user_sessions[c.message.chat.id] = {}
+    user_sessions[c.message.chat.id]["payment_filter"] = payment_filter
     
     try:
         master_bot.delete_message(c.message.chat.id, c.message.message_id)
@@ -1077,8 +1137,8 @@ def m_scan_type_callback(c):
     
     master_bot.send_message(
         c.message.chat.id,
-        f"✅ *{display_type} Selected*\n\n"
-        f"📁 Now send your OK TXT file:\n\n"
+        f"✅ *Payment Filter: {payment_filter}*\n\n"
+        f"📁 *Now send your OK TXT file:*\n\n"
         f"💡 Each line should contain one username/email\n"
         f"📌 Example:\n"
         f"   • john_doe\n"
@@ -1088,16 +1148,17 @@ def m_scan_type_callback(c):
         parse_mode="Markdown"
     )
     
-    master_bot.register_next_step_handler_by_chat_id(c.message.chat.id, scan_ok_list_accurate)
+    master_bot.register_next_step_handler_by_chat_id(c.message.chat.id, scan_ok_list_with_payment_filter)
 
 
-def scan_ok_list_accurate(m):
-    """100% Accurate OK List Scanner"""
+def scan_ok_list_with_payment_filter(m):
+    """100% Accurate OK List Scanner with Payment Filter"""
     if m.from_user.id not in ADMIN_IDS:
         return
     
     session = user_sessions.get(m.chat.id, {})
     scan_type = session.get("scan_type", "all")
+    payment_filter = session.get("payment_filter", "All")
     user_sessions.pop(m.chat.id, None)
     
     if not m.document:
@@ -1150,6 +1211,7 @@ def scan_ok_list_accurate(m):
         master_bot.edit_message_text(
             f"⏳ *Scanning {len(ok_list)} users...*\n\n"
             f"📂 Type: {get_type_display_name(scan_type) if scan_type != 'all' else 'ALL TYPES'}\n"
+            f"💳 Payment Filter: {payment_filter}\n"
             f"🔍 Searching database...",
             chat_id=status_msg.chat.id,
             message_id=status_msg.message_id,
@@ -1179,6 +1241,10 @@ def scan_ok_list_accurate(m):
             submitted_by = file_info.get("submitted_by", "Unknown")
             payment_method = file_info.get("payment_method", "Unknown")
             payment_number = file_info.get("payment_number", "Unknown")
+            
+            # Apply payment filter
+            if payment_filter != "All" and payment_method != payment_filter:
+                continue
             
             user_matches = {}
             
@@ -1212,16 +1278,16 @@ def scan_ok_list_accurate(m):
                         })
                         user_matches[submitted_by]["total_ok"] += 1
                         total_matches += 1
-    
-    for submitted_by, data in user_matches.items():
-        results[submitted_by] = {
-            "total_ok": data["total_ok"],
-            "submitted_by": data["submitted_by"],
-            "payment_method": data["payment_method"],
-            "payment_number": data["payment_number"],
-            "file_type": data["file_type"],
-            "matches": data["matches"]
-        }
+            
+            for submitted_by, data in user_matches.items():
+                results[submitted_by] = {
+                    "total_ok": data["total_ok"],
+                    "submitted_by": data["submitted_by"],
+                    "payment_method": data["payment_method"],
+                    "payment_number": data["payment_number"],
+                    "file_type": data["file_type"],
+                    "matches": data["matches"]
+                }
     
     global current_ok_data
     current_ok_data = {
@@ -1230,6 +1296,7 @@ def scan_ok_list_accurate(m):
         "last_scan_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "results": results,
         "scan_type": scan_type,
+        "payment_filter": payment_filter,
         "ok_list_count": len(ok_list),
         "total_files_scanned": total_files_scanned,
         "total_data_scanned": total_data_scanned
@@ -1247,6 +1314,7 @@ def scan_ok_list_accurate(m):
             f"📊 OK List: {len(ok_list)} users\n"
             f"📁 Files Scanned: {total_files_scanned}\n"
             f"📊 Data Scanned: {total_data_scanned}\n"
+            f"💳 Payment Filter: {payment_filter}\n"
             f"✅ Matches Found: 0",
             parse_mode="Markdown"
         )
@@ -1282,6 +1350,7 @@ def scan_ok_list_accurate(m):
     
     summary = f"✅ *SCAN COMPLETE!*\n\n"
     summary += f"📂 *Type:* {display_type}\n"
+    summary += f"💳 *Payment Filter:* {payment_filter}\n"
     summary += f"📊 *OK List:* {len(ok_list)} users\n"
     summary += f"📁 *Files Scanned:* {total_files_scanned}\n"
     summary += f"📊 *Total Data Scanned:* {total_data_scanned}\n"
@@ -1306,6 +1375,7 @@ def scan_ok_list_accurate(m):
             caption=f"📊 SCAN REPORT\n"
                     f"📅 Date: {current_date}\n"
                     f"Type: {display_type}\n"
+                    f"Payment Filter: {payment_filter}\n"
                     f"Total Matches: {total_matches}\n"
                     f"Matched Submitters: {len(results)}"
         )
