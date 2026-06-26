@@ -861,7 +861,7 @@ def back_to_main_menu(m):
         reply_markup=kb
     )
 
-# ================= 📢 [ BROADCAST - COMPLETE ] =================
+# ================= 📢 [ BROADCAST ] =================
 
 @master_bot.message_handler(func=lambda m: m.text == "📢 Broadcast")
 def m_broadcast(m):
@@ -1022,8 +1022,7 @@ Thanks by *MAX FUTURE* ✅"""
     
     master_bot.send_message(m.chat.id, result_msg, parse_mode="Markdown")
 
-
-# ================= 💳 [ PAYMENT LIST SCANNER - FIXED ] =================
+# ================= 💳 [ PAYMENT LIST SCANNER ] =================
 
 @master_bot.message_handler(func=lambda m: m.text == "💳 Payment List Scanner")
 def m_payment_scanner(m):
@@ -1032,11 +1031,11 @@ def m_payment_scanner(m):
     
     kb = types.InlineKeyboardMarkup(row_width=2)
     kb.add(
-        types.InlineKeyboardButton(f"{get_type_icon('ig_cookies')} {get_type_display_name('ig_cookies')}", callback_data="scan_type_ig_cookies"),
-        types.InlineKeyboardButton(f"{get_type_icon('ig_2fa')} {get_type_display_name('ig_2fa')}", callback_data="scan_type_ig_2fa"),
-        types.InlineKeyboardButton(f"{get_type_icon('fb_0fd_2fa')} {get_type_display_name('fb_0fd_2fa')}", callback_data="scan_type_fb_0fd_2fa"),
-        types.InlineKeyboardButton("📊 All Types", callback_data="scan_type_all"),
-        types.InlineKeyboardButton("❌ Cancel", callback_data="scan_type_cancel")
+        types.InlineKeyboardButton(f"{get_type_icon('ig_cookies')} {get_type_display_name('ig_cookies')}", callback_data="scanner_type_ig_cookies"),
+        types.InlineKeyboardButton(f"{get_type_icon('ig_2fa')} {get_type_display_name('ig_2fa')}", callback_data="scanner_type_ig_2fa"),
+        types.InlineKeyboardButton(f"{get_type_icon('fb_0fd_2fa')} {get_type_display_name('fb_0fd_2fa')}", callback_data="scanner_type_fb_0fd_2fa"),
+        types.InlineKeyboardButton("📊 All Types", callback_data="scanner_type_all"),
+        types.InlineKeyboardButton("❌ Cancel", callback_data="scanner_cancel")
     )
     
     master_bot.send_message(
@@ -1046,14 +1045,13 @@ def m_payment_scanner(m):
         reply_markup=kb
     )
 
-
-@master_bot.callback_query_handler(func=lambda c: c.data.startswith("scan_type_"))
-def m_scan_type_callback(c):
+@master_bot.callback_query_handler(func=lambda c: c.data.startswith("scanner_type_"))
+def m_scanner_type_callback(c):
     if c.from_user.id not in ADMIN_IDS:
         master_bot.answer_callback_query(c.id, "❌ Unauthorized!")
         return
     
-    if c.data == "scan_type_cancel":
+    if c.data == "scanner_cancel":
         try:
             master_bot.delete_message(c.message.chat.id, c.message.message_id)
         except:
@@ -1061,7 +1059,7 @@ def m_scan_type_callback(c):
         master_bot.send_message(c.message.chat.id, "❌ Scanner cancelled.")
         return
     
-    scan_type = c.data.replace("scan_type_", "")
+    scan_type = c.data.replace("scanner_type_", "")
     
     if scan_type == "all":
         display_type = "ALL TYPES"
@@ -1076,68 +1074,9 @@ def m_scan_type_callback(c):
     except:
         pass
     
-    # Show payment methods first or directly ask for file?
-    kb = types.InlineKeyboardMarkup(row_width=2)
-    kb.add(
-        types.InlineKeyboardButton("🏦 bKash", callback_data="scan_pay_bkash"),
-        types.InlineKeyboardButton("🏧 Nagad", callback_data="scan_pay_nagad"),
-        types.InlineKeyboardButton("💳 Rocket", callback_data="scan_pay_rocket"),
-        types.InlineKeyboardButton("₿ Binance", callback_data="scan_pay_binance"),
-        types.InlineKeyboardButton("📊 All Payments", callback_data="scan_pay_all"),
-        types.InlineKeyboardButton("❌ Cancel", callback_data="scan_pay_cancel")
-    )
-    
     master_bot.send_message(
         c.message.chat.id,
         f"✅ *{display_type} Selected*\n\n"
-        f"💳 *Filter by Payment Method*\n\n"
-        f"Select which payment method to filter, or 'All Payments' for all:",
-        parse_mode="Markdown",
-        reply_markup=kb
-    )
-
-
-@master_bot.callback_query_handler(func=lambda c: c.data.startswith("scan_pay_"))
-def m_scan_pay_callback(c):
-    if c.from_user.id not in ADMIN_IDS:
-        master_bot.answer_callback_query(c.id, "❌ Unauthorized!")
-        return
-    
-    if c.data == "scan_pay_cancel":
-        try:
-            master_bot.delete_message(c.message.chat.id, c.message.message_id)
-        except:
-            pass
-        user_sessions.pop(c.message.chat.id, None)
-        master_bot.send_message(c.message.chat.id, "❌ Scanner cancelled.")
-        return
-    
-    payment_filter = c.data.replace("scan_pay_", "")
-    
-    if payment_filter == "all":
-        payment_filter = "All"
-    elif payment_filter == "bkash":
-        payment_filter = "bKash"
-    elif payment_filter == "nagad":
-        payment_filter = "Nagad"
-    elif payment_filter == "rocket":
-        payment_filter = "Rocket"
-    elif payment_filter == "binance":
-        payment_filter = "Binance"
-    
-    # Store payment filter in session
-    if c.message.chat.id not in user_sessions:
-        user_sessions[c.message.chat.id] = {}
-    user_sessions[c.message.chat.id]["payment_filter"] = payment_filter
-    
-    try:
-        master_bot.delete_message(c.message.chat.id, c.message.message_id)
-    except:
-        pass
-    
-    master_bot.send_message(
-        c.message.chat.id,
-        f"✅ *Payment Filter: {payment_filter}*\n\n"
         f"📁 *Now send your OK TXT file:*\n\n"
         f"💡 Each line should contain one username/email\n"
         f"📌 Example:\n"
@@ -1148,17 +1087,15 @@ def m_scan_pay_callback(c):
         parse_mode="Markdown"
     )
     
-    master_bot.register_next_step_handler_by_chat_id(c.message.chat.id, scan_ok_list_with_payment_filter)
+    master_bot.register_next_step_handler_by_chat_id(c.message.chat.id, scan_ok_list)
 
-
-def scan_ok_list_with_payment_filter(m):
-    """100% Accurate OK List Scanner with Payment Filter"""
+def scan_ok_list(m):
+    """OK List Scanner - Matches TXT data with database"""
     if m.from_user.id not in ADMIN_IDS:
         return
     
     session = user_sessions.get(m.chat.id, {})
     scan_type = session.get("scan_type", "all")
-    payment_filter = session.get("payment_filter", "All")
     user_sessions.pop(m.chat.id, None)
     
     if not m.document:
@@ -1211,7 +1148,6 @@ def scan_ok_list_with_payment_filter(m):
         master_bot.edit_message_text(
             f"⏳ *Scanning {len(ok_list)} users...*\n\n"
             f"📂 Type: {get_type_display_name(scan_type) if scan_type != 'all' else 'ALL TYPES'}\n"
-            f"💳 Payment Filter: {payment_filter}\n"
             f"🔍 Searching database...",
             chat_id=status_msg.chat.id,
             message_id=status_msg.message_id,
@@ -1241,10 +1177,6 @@ def scan_ok_list_with_payment_filter(m):
             submitted_by = file_info.get("submitted_by", "Unknown")
             payment_method = file_info.get("payment_method", "Unknown")
             payment_number = file_info.get("payment_number", "Unknown")
-            
-            # Apply payment filter
-            if payment_filter != "All" and payment_method != payment_filter:
-                continue
             
             user_matches = {}
             
@@ -1296,7 +1228,6 @@ def scan_ok_list_with_payment_filter(m):
         "last_scan_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "results": results,
         "scan_type": scan_type,
-        "payment_filter": payment_filter,
         "ok_list_count": len(ok_list),
         "total_files_scanned": total_files_scanned,
         "total_data_scanned": total_data_scanned
@@ -1314,7 +1245,6 @@ def scan_ok_list_with_payment_filter(m):
             f"📊 OK List: {len(ok_list)} users\n"
             f"📁 Files Scanned: {total_files_scanned}\n"
             f"📊 Data Scanned: {total_data_scanned}\n"
-            f"💳 Payment Filter: {payment_filter}\n"
             f"✅ Matches Found: 0",
             parse_mode="Markdown"
         )
@@ -1322,6 +1252,7 @@ def scan_ok_list_with_payment_filter(m):
     
     display_type = get_type_display_name(scan_type) if scan_type != 'all' else "ALL TYPES"
     
+    # Generate report
     report_data = []
     for submitted_by, data in results.items():
         report_data.append({
@@ -1329,8 +1260,7 @@ def scan_ok_list_with_payment_filter(m):
             "Payment Method": data["payment_method"],
             "Payment Number": data["payment_number"],
             "File Type": get_type_display_name(data["file_type"]),
-            "Total OK": data["total_ok"],
-            "Matched Users": ", ".join([m["user"] for m in data["matches"]][:10]) + ("..." if len(data["matches"]) > 10 else "")
+            "Total OK": data["total_ok"]
         })
     
     current_date = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -1343,6 +1273,7 @@ def scan_ok_list_with_payment_filter(m):
         report_file = f"reports/scan_report_{current_date}_{m.chat.id}.csv"
         df.to_csv(report_file, index=False, encoding='utf-8-sig')
     
+    # Payment breakdown
     bkash_count = len([x for x in report_data if x["Payment Method"] == "bKash"])
     nagad_count = len([x for x in report_data if x["Payment Method"] == "Nagad"])
     rocket_count = len([x for x in report_data if x["Payment Method"] == "Rocket"])
@@ -1350,10 +1281,9 @@ def scan_ok_list_with_payment_filter(m):
     
     summary = f"✅ *SCAN COMPLETE!*\n\n"
     summary += f"📂 *Type:* {display_type}\n"
-    summary += f"💳 *Payment Filter:* {payment_filter}\n"
     summary += f"📊 *OK List:* {len(ok_list)} users\n"
     summary += f"📁 *Files Scanned:* {total_files_scanned}\n"
-    summary += f"📊 *Total Data Scanned:* {total_data_scanned}\n"
+    summary += f"📊 *Data Scanned:* {total_data_scanned}\n"
     summary += f"━━━━━━━━━━━━━━━━━━━━\n"
     summary += f"✅ *Matched Submitters:* {len(results)}\n"
     summary += f"📈 *Total OK Count:* {total_matches}\n"
@@ -1375,13 +1305,13 @@ def scan_ok_list_with_payment_filter(m):
             caption=f"📊 SCAN REPORT\n"
                     f"📅 Date: {current_date}\n"
                     f"Type: {display_type}\n"
-                    f"Payment Filter: {payment_filter}\n"
                     f"Total Matches: {total_matches}\n"
                     f"Matched Submitters: {len(results)}"
         )
     
     os.remove(report_file)
     
+    # Top submitters
     top_submitters = sorted(results.items(), key=lambda x: x[1]["total_ok"], reverse=True)[:5]
     if top_submitters:
         top_msg = f"🏆 *TOP 5 SUBMITTERS*\n\n"
@@ -1391,15 +1321,12 @@ def scan_ok_list_with_payment_filter(m):
         
         master_bot.send_message(m.chat.id, top_msg, parse_mode="Markdown")
 
-
-# ================= 📥 [ PAYMENT LIST - TYPE WISE ] =================
+# ================= 📥 [ PAYMENT LIST ] =================
 
 @master_bot.message_handler(func=lambda m: m.text == "📥 Payment List")
 def m_payment_list(m):
     if m.from_user.id not in ADMIN_IDS:
         return
-    
-    db = load_db()
     
     kb = types.InlineKeyboardMarkup(row_width=2)
     kb.add(
@@ -1420,7 +1347,6 @@ def m_payment_list(m):
         parse_mode="Markdown",
         reply_markup=kb
     )
-
 
 @master_bot.callback_query_handler(func=lambda c: c.data.startswith("paylist_"))
 def m_paylist_callback(c):
@@ -1452,9 +1378,8 @@ def m_paylist_callback(c):
     
     generate_payment_list(c.message.chat.id, file_types, type_label)
 
-
 def generate_payment_list(chat_id, file_types, type_label):
-    """Generate payment list - type wise"""
+    """Generate payment list with OK counts"""
     db = load_db()
     
     submitter_data = []
@@ -1468,17 +1393,17 @@ def generate_payment_list(chat_id, file_types, type_label):
             payment_number = file_info.get("payment_number", "Unknown")
             total_rows = file_info.get("total_rows_in_file", 0)
             
+            # Get OK count from last scan
             ok_count = 0
             if current_ok_data.get("results") and submitted_by in current_ok_data["results"]:
                 ok_count = current_ok_data["results"][submitted_by].get("total_ok", 0)
             
             submitter_data.append({
                 "submitted_by": submitted_by,
-                "payment": payment_method,
-                "number": payment_number,
-                "total_files": 1,
+                "payment_method": payment_method,
+                "payment_number": payment_number,
                 "total_rows": total_rows,
-                "ok": ok_count
+                "ok_count": ok_count
             })
     
     if not submitter_data:
@@ -1495,35 +1420,33 @@ def generate_payment_list(chat_id, file_types, type_label):
         parse_mode="Markdown"
     )
     
+    # Group by submitter
     grouped_data = {}
     for item in submitter_data:
-        key = f"{item['submitted_by']}_{item['payment']}_{item['number']}"
+        key = item["submitted_by"]
         if key not in grouped_data:
             grouped_data[key] = {
                 "submitted_by": item["submitted_by"],
-                "payment": item["payment"],
-                "number": item["number"],
-                "total_files": 0,
+                "payment_method": item["payment_method"],
+                "payment_number": item["payment_number"],
                 "total_rows": 0,
-                "ok": 0
+                "ok_count": 0
             }
-        grouped_data[key]["total_files"] += item["total_files"]
         grouped_data[key]["total_rows"] += item["total_rows"]
-        grouped_data[key]["ok"] += item["ok"]
+        grouped_data[key]["ok_count"] += item["ok_count"]
     
     final_data = []
     for key, data in grouped_data.items():
         final_data.append({
             "submitted_by": data["submitted_by"],
-            "payment": data["payment"],
-            "number": data["number"],
-            "total_files": data["total_files"],
+            "payment_method": data["payment_method"],
+            "payment_number": data["payment_number"],
             "total_rows": data["total_rows"],
-            "ok": data["ok"]
+            "ok_count": data["ok_count"]
         })
     
-    payment_order = {"bKash": 1, "Nagad": 2, "Rocket": 3, "Binance": 4}
-    final_data.sort(key=lambda x: (payment_order.get(x["payment"], 999), -x["total_rows"]))
+    # Sort by OK count (highest first)
+    final_data.sort(key=lambda x: x["ok_count"], reverse=True)
     
     df = pd.DataFrame(final_data)
     
@@ -1537,14 +1460,13 @@ def generate_payment_list(chat_id, file_types, type_label):
         df.to_csv(data_file, index=False, encoding='utf-8-sig')
     
     total_submitters = len(final_data)
-    total_files = sum(d["total_files"] for d in final_data)
     total_rows = sum(d["total_rows"] for d in final_data)
-    total_ok = sum(d["ok"] for d in final_data)
+    total_ok = sum(d["ok_count"] for d in final_data)
     
-    bkash_count = len([x for x in final_data if x["payment"] == "bKash"])
-    nagad_count = len([x for x in final_data if x["payment"] == "Nagad"])
-    rocket_count = len([x for x in final_data if x["payment"] == "Rocket"])
-    binance_count = len([x for x in final_data if x["payment"] == "Binance"])
+    bkash_count = len([x for x in final_data if x["payment_method"] == "bKash"])
+    nagad_count = len([x for x in final_data if x["payment_method"] == "Nagad"])
+    rocket_count = len([x for x in final_data if x["payment_method"] == "Rocket"])
+    binance_count = len([x for x in final_data if x["payment_method"] == "Binance"])
     
     try:
         master_bot.delete_message(chat_id, status_msg.message_id)
@@ -1556,15 +1478,14 @@ def generate_payment_list(chat_id, file_types, type_label):
     summary += f"📅 *Generated:* {current_date}\n"
     summary += f"━━━━━━━━━━━━━━━━━━━━\n"
     summary += f"👥 Total Submitters: {total_submitters}\n"
-    summary += f"📁 Total Files: {total_files}\n"
     summary += f"📊 Total Rows: {total_rows}\n"
     summary += f"✅ Total OK: {total_ok}\n"
     summary += f"━━━━━━━━━━━━━━━━━━━━\n\n"
     summary += f"💳 *Payment Breakdown:*\n"
-    summary += f"🏦 bKash: {bkash_count} users\n"
-    summary += f"🏧 Nagad: {nagad_count} users\n"
-    summary += f"💳 Rocket: {rocket_count} users\n"
-    summary += f"₿ Binance: {binance_count} users\n\n"
+    summary += f"🏦 bKash: {bkash_count} submitters\n"
+    summary += f"🏧 Nagad: {nagad_count} submitters\n"
+    summary += f"💳 Rocket: {rocket_count} submitters\n"
+    summary += f"₿ Binance: {binance_count} submitters\n\n"
     summary += f"📥 Downloading file..."
     
     master_bot.send_message(chat_id, summary, parse_mode="Markdown")
@@ -1576,11 +1497,10 @@ def generate_payment_list(chat_id, file_types, type_label):
             caption=f"📊 {type_label} PAYMENT LIST\n"
                     f"📅 Date: {current_date}\n"
                     f"Total OK: {total_ok}\n\n"
-                    f"Columns: submitted_by, payment, number, total_files, total_rows, ok"
+                    f"Columns: submitted_by, payment_method, payment_number, total_rows, ok_count"
         )
     
     os.remove(data_file)
-
 
 # ================= 🎛️ [ TYPE CONTROL ] =================
 
@@ -1714,7 +1634,6 @@ def m_stats(m):
     
     master_bot.send_message(m.chat.id, stats_msg, parse_mode="Markdown")
 
-
 # ================= 📁 [ DOWNLOAD BY TYPE ] =================
 
 @master_bot.message_handler(func=lambda m: m.text == "📁 Download by Type")
@@ -1821,8 +1740,7 @@ def m_download_type_callback(c):
     
     os.remove(data_file)
 
-
-# ================= 🗑 [ CLEAR DATA - TYPE WISE ] =================
+# ================= 🗑 [ CLEAR DATA ] =================
 
 @master_bot.message_handler(func=lambda m: m.text == "🗑 Clear Data")
 def m_clear_data(m):
@@ -1923,7 +1841,6 @@ def m_clear_callback(c):
         parse_mode="Markdown"
     )
 
-
 # ================= 💳 [ USER PAYMENTS ] =================
 
 @master_bot.message_handler(func=lambda m: m.text == "💳 User Payments")
@@ -1990,7 +1907,6 @@ def m_user_payments(m):
     
     os.remove(data_file)
 
-
 # ================= 🔍 [ SEARCH USER ] =================
 
 @master_bot.message_handler(func=lambda m: m.text == "🔍 Search User")
@@ -2035,7 +1951,6 @@ def search_user_payment(m):
             f"❌ *No user found with ID:* `{search_query}`",
             parse_mode="Markdown"
         )
-
 
 # ================= ➕ [ ADD/REMOVE BOT ] =================
 
@@ -2107,7 +2022,6 @@ def m_remove_callback(c):
         
         master_bot.send_message(c.message.chat.id, f"✅ Bot removed")
 
-
 # ================= 🔄 [ RESET ALL TYPES ] =================
 
 @master_bot.message_handler(func=lambda m: m.text == "🔄 Reset All Types")
@@ -2123,7 +2037,6 @@ def m_reset_types(m):
     }
     
     master_bot.send_message(m.chat.id, "✅ *All types reset to ON!*", parse_mode="Markdown")
-
 
 # ================= 🔄 [ BACK TO MENU CALLBACK ] =================
 
@@ -2155,7 +2068,6 @@ def m_back_to_menu(c):
         reply_markup=kb
     )
 
-
 # ================= 🔄 [ MAIN ] =================
 
 def run_all_bots():
@@ -2169,7 +2081,7 @@ def run_all_bots():
 
 if __name__ == "__main__":
     print("=" * 50)
-    print("👑 ID RECEIVER SYSTEM v21.0")
+    print("👑 ID RECEIVER SYSTEM v22.0")
     print("🎛️ COMPLETE AUTO-DETECTION")
     print("🎛️ NO COLUMN NAMES REQUIRED")
     print("🎛️ AUTO PAYMENT SAVE")
@@ -2178,7 +2090,7 @@ if __name__ == "__main__":
     print("🎛️ FULL BROADCAST SUPPORT")
     print("🎛️ DATE ADDED TO FILES")
     print("🎛️ 100% ACCURATE SCANNER")
-    print("🎛️ TYPE CONTROL FREE PAYMENT LIST")
+    print("🎛️ PAYMENT LIST & SCANNER SEPARATED")
     print("=" * 50)
     
     if not MASTER_ADMIN_TOKEN:
