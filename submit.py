@@ -1,3 +1,17 @@
+        for i, val in enumerate(values):
+            if '@' in val and '.' in val:
+                email_idx = i
+                break
+        
+        if email_idx != -1:
+            user_val = values[email_idx]
+            for i, val in enumerate(values):
+                if i != email_idx and len(val) >= 4:
+                    if not pass_val:
+                        pass_val = val
+                    elif not twofa_val and len(val) <= 6 and val.isdigit():
+                        twofa_val = val
+            if not twofa_val:
 import telebot
 import os
 import json
@@ -968,7 +982,7 @@ Thanks by MAX FUTURE ✅"""
         for bot_token in bot_tokens:
             try:
                 bot = telebot.TeleBot(bot_token)
-                bot.send_message(user_id, final_message)
+                bot.send_message(user_id, final_message, parse_mode="HTML")
                 success += 1
                 sent = True
                 break
@@ -1003,7 +1017,7 @@ Thanks by MAX FUTURE ✅"""
     
     master_bot.send_message(m.chat.id, result_msg)
 
-# ================= 📋 [ REPORT CHECK ] =================
+# ================= 📋 [ REPORT CHECK - UNIQUE OK ] =================
 
 @master_bot.message_handler(func=lambda m: m.text == "📋 Report Check")
 def m_report_check(m):
@@ -1081,7 +1095,7 @@ def m_report_select_callback(c):
     master_bot.register_next_step_handler(c.message, scan_ok_list_clean)
 
 def scan_ok_list_clean(m):
-    """OK List Scanner - Clean Report Only, No File Download"""
+    """OK List Scanner - Only Unique OK Usernames Counted"""
     if m.from_user.id not in ADMIN_IDS:
         return
     
@@ -1103,7 +1117,6 @@ def scan_ok_list_clean(m):
         bot_reply_messages[m.chat.id].append(msg.message_id)
         return
     
-    # Don't delete user's file message
     try:
         master_bot.delete_message(m.chat.id, m.message_id)
     except:
@@ -1121,6 +1134,7 @@ def scan_ok_list_clean(m):
         
         ok_list_raw = [line.strip() for line in content.split('\n') if line.strip()]
         
+        # Create unique OK list (remove duplicates from TXT)
         ok_list = []
         seen = set()
         for item in ok_list_raw:
@@ -1142,7 +1156,7 @@ def scan_ok_list_clean(m):
     
     try:
         master_bot.edit_message_text(
-            f"⏳ Scanning {len(ok_list)} users...\n\n📂 Type: {get_type_display_name(scan_type) if scan_type != 'all' else 'ALL TYPES'}\n🔍 Searching database...",
+            f"⏳ Scanning {len(ok_list)} unique users...\n\n📂 Type: {get_type_display_name(scan_type) if scan_type != 'all' else 'ALL TYPES'}\n🔍 Searching database...",
             chat_id=status_msg.chat.id,
             message_id=status_msg.message_id
         )
@@ -1159,7 +1173,10 @@ def scan_ok_list_clean(m):
     results = {}
     total_files_scanned = 0
     total_data_scanned = 0
-    total_matches = 0
+    
+    # Track which OK usernames were found (unique)
+    found_ok_usernames = set()
+    submitter_data = {}
     
     for file_type in types_to_scan:
         files_data = db["files"].get(file_type, {})
@@ -1171,7 +1188,15 @@ def scan_ok_list_clean(m):
             payment_method = file_info.get("payment_method", "Unknown")
             payment_number = file_info.get("payment_number", "Unknown")
             
-            user_matches = {}
+            if submitted_by not in submitter_data:
+                submitter_data[submitted_by] = {
+                    "submitted_by": submitted_by,
+                    "payment_method": payment_method,
+                    "payment_number": payment_number,
+                    "file_type": file_type,
+                    "found_ok": set(),
+                    "matches": []
+                }
             
             for row in original_data:
                 total_data_scanned += 1
@@ -1185,38 +1210,31 @@ def scan_ok_list_clean(m):
                 
                 for ok_username in ok_list:
                     if ok_username and ok_username == user_field:
-                        if submitted_by not in user_matches:
-                            user_matches[submitted_by] = {
-                                "submitted_by": submitted_by,
-                                "payment_method": payment_method,
-                                "payment_number": payment_number,
-                                "file_type": file_type,
-                                "matches": [],
-                                "total_ok": 0
-                            }
-                        
-                        user_matches[submitted_by]["matches"].append({
-                            "user": user_field,
-                            "pass": pass_field,
-                            "2fa": twofa_field,
-                            "ok_username": ok_username
-                        })
-                        user_matches[submitted_by]["total_ok"] += 1
-                        total_matches += 1
-            
-            for submitted_by, data in user_matches.items():
-                results[submitted_by] = {
-                    "total_ok": data["total_ok"],
-                    "submitted_by": data["submitted_by"],
-                    "payment_method": data["payment_method"],
-                    "payment_number": data["payment_number"],
-                    "file_type": data["file_type"],
-                    "matches": data["matches"]
-                }
+                        if ok_username not in submitter_data[submitted_by]["found_ok"]:
+                            submitter_data[submitted_by]["found_ok"].add(ok_username)
+                            submitter_data[submitted_by]["matches"].append({
+                                "user": user_field,
+                                "pass": pass_field,
+                                "2fa": twofa_field,
+                                "ok_username": ok_username
+                            })
+                            found_ok_usernames.add(ok_username)
+    
+    # Build final results
+    for submitted_by, data in submitter_data.items():
+        if data["found_ok"]:
+            results[submitted_by] = {
+                "total_ok": len(data["found_ok"]),
+                "submitted_by": data["submitted_by"],
+                "payment_method": data["payment_method"],
+                "payment_number": data["payment_number"],
+                "file_type": data["file_type"],
+                "matches": data["matches"]
+            }
     
     global current_ok_data
     current_ok_data = {
-        "total_ok": total_matches,
+        "total_ok": len(found_ok_usernames),
         "total_users": len(results),
         "last_scan_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "results": results,
@@ -1234,7 +1252,11 @@ def scan_ok_list_clean(m):
     if not results:
         msg = master_bot.send_message(
             m.chat.id,
-            f"❌ NO MATCHES FOUND!\n\n📊 OK List: {len(ok_list)} users\n📁 Files Scanned: {total_files_scanned}\n📊 Data Scanned: {total_data_scanned}\n✅ Matches Found: 0"
+            f"❌ NO MATCHES FOUND!\n\n"
+            f"📊 OK List: {len(ok_list)} users\n"
+            f"📁 Files Scanned: {total_files_scanned}\n"
+            f"📊 Data Scanned: {total_data_scanned}\n"
+            f"✅ Matches Found: 0"
         )
         if m.chat.id not in bot_reply_messages:
             bot_reply_messages[m.chat.id] = []
@@ -1260,7 +1282,7 @@ def scan_ok_list_clean(m):
         elif payment_method == "Binance":
             binance_count += 1
     
-    # Create clean report - NO TOP 5
+    # Create clean report
     report = f"✅ REPORT CHECK COMPLETE!\n\n"
     report += f"📂 Type: {display_type}\n"
     report += f"📊 OK List: {len(ok_list)} users\n"
@@ -1268,7 +1290,7 @@ def scan_ok_list_clean(m):
     report += f"📊 Data Scanned: {total_data_scanned}\n"
     report += f"━━━━━━━━━━━━━━━━━━━━\n"
     report += f"✅ Matched Submitters: {len(results)}\n"
-    report += f"📈 Total OK Count: {total_matches}\n"
+    report += f"📈 Total OK Found: {len(found_ok_usernames)}\n"
     report += f"🕐 Scan Time: {current_ok_data['last_scan_time']}\n"
     report += f"━━━━━━━━━━━━━━━━━━━━\n\n"
     report += f"💳 Payment Breakdown:\n"
@@ -1282,7 +1304,7 @@ def scan_ok_list_clean(m):
         bot_reply_messages[m.chat.id] = []
     bot_reply_messages[m.chat.id].append(msg.message_id)
 
-# ================= 📥 [ PAYMENT LIST - WITH TYPE SELECTION & FILE ] =================
+# ================= 📥 [ PAYMENT LIST - EACH FILE SEPARATE WITH DATE FORMAT ] =================
 
 @master_bot.message_handler(func=lambda m: m.text == "📥 Payment List")
 def m_payment_list(m):
@@ -1345,7 +1367,7 @@ def m_paylist_select_callback(c):
     generate_payment_list_file(c.message.chat.id, file_types, type_label)
 
 def generate_payment_list_file(chat_id, file_types, type_label):
-    """Generate payment list with file download"""
+    """Generate payment list - Each file separately with OK count and formatted date"""
     db = load_db()
     
     submitter_data = []
@@ -1358,28 +1380,46 @@ def generate_payment_list_file(chat_id, file_types, type_label):
             payment_method = file_info.get("payment_method", "Unknown")
             payment_number = file_info.get("payment_number", "Unknown")
             total_rows = file_info.get("total_rows_in_file", 0)
+            original_name = file_info.get("original_name", "Unknown")
+            received_date = file_info.get("received_date", "Unknown")
+            
+            # Convert date format from YYYYMMDD_HHMMSS to DD-MM-YYYY
+            try:
+                if received_date and received_date != "Unknown":
+                    # received_date is like "20260625_220809"
+                    date_part = received_date.split('_')[0]  # "20260625"
+                    year = date_part[:4]  # "2026"
+                    month = date_part[4:6]  # "06"
+                    day = date_part[6:8]  # "25"
+                    # Convert to DD-MM-YYYY format
+                    formatted_date = f"{day}-{month}-{year}"
+                else:
+                    formatted_date = "Unknown"
+            except:
+                formatted_date = received_date
             
             # Get OK count from last scan
             ok_count = 0
-            if current_ok_data.get("results") and submitted_by in current_ok_data["results"]:
-                ok_count = current_ok_data["results"][submitted_by].get("total_ok", 0)
+            if current_ok_data.get("results"):
+                if submitted_by in current_ok_data["results"]:
+                    ok_count = current_ok_data["results"][submitted_by].get("total_ok", 0)
             
             submitter_data.append({
                 "submitted_by": submitted_by,
                 "payment_method": payment_method,
                 "payment_number": payment_number,
                 "total_rows": total_rows,
-                "ok_count": ok_count
+                "ok_count": ok_count,
+                "file_name": original_name,
+                "received_date": formatted_date,
+                "file_hash": file_hash[:8]
             })
     
     if not submitter_data:
-        msg = master_bot.send_message(
+        master_bot.send_message(
             chat_id, 
             f"❌ NO DATA FOUND!\n\nType: {type_label}"
         )
-        if chat_id not in bot_reply_messages:
-            bot_reply_messages[chat_id] = []
-        bot_reply_messages[chat_id].append(msg.message_id)
         return
     
     status_msg = master_bot.send_message(
@@ -1387,36 +1427,12 @@ def generate_payment_list_file(chat_id, file_types, type_label):
         f"⏳ Generating {type_label} Payment List..."
     )
     
-    # Group by submitter
-    grouped_data = {}
-    for item in submitter_data:
-        key = item["submitted_by"]
-        if key not in grouped_data:
-            grouped_data[key] = {
-                "submitted_by": item["submitted_by"],
-                "payment_method": item["payment_method"],
-                "payment_number": item["payment_number"],
-                "total_rows": 0,
-                "ok_count": 0
-            }
-        grouped_data[key]["total_rows"] += item["total_rows"]
-        grouped_data[key]["ok_count"] += item["ok_count"]
+    # Sort by payment method order: bKash -> Nagad -> Rocket -> Binance
+    payment_order = {"bKash": 1, "Nagad": 2, "Rocket": 3, "Binance": 4}
+    submitter_data.sort(key=lambda x: (payment_order.get(x["payment_method"], 999), x["submitted_by"]))
     
-    final_data = []
-    for key, data in grouped_data.items():
-        final_data.append({
-            "submitted_by": data["submitted_by"],
-            "payment_method": data["payment_method"],
-            "payment_number": data["payment_number"],
-            "total_rows": data["total_rows"],
-            "ok_count": data["ok_count"]
-        })
-    
-    # Sort by OK count (highest first)
-    final_data.sort(key=lambda x: x["ok_count"], reverse=True)
-    
-    df = pd.DataFrame(final_data)
-    df = df[["submitted_by", "payment_method", "payment_number", "total_rows", "ok_count"]]
+    df = pd.DataFrame(submitter_data)
+    df = df[["submitted_by", "payment_method", "payment_number", "total_rows", "ok_count", "file_name", "received_date"]]
     
     current_date = datetime.now().strftime("%Y%m%d_%H%M%S")
     
@@ -1427,9 +1443,9 @@ def generate_payment_list_file(chat_id, file_types, type_label):
         data_file = f"reports/payment_list_{type_label.replace(' ', '_')}_{current_date}_{chat_id}.csv"
         df.to_csv(data_file, index=False, encoding='utf-8-sig')
     
-    total_submitters = len(final_data)
-    total_rows = sum(d["total_rows"] for d in final_data)
-    total_ok = sum(d["ok_count"] for d in final_data)
+    total_submitters = len(submitter_data)
+    total_rows = sum(d["total_rows"] for d in submitter_data)
+    total_ok = sum(d["ok_count"] for d in submitter_data)
     
     try:
         master_bot.delete_message(chat_id, status_msg.message_id)
@@ -1441,7 +1457,7 @@ def generate_payment_list_file(chat_id, file_types, type_label):
     summary += f"📂 Type: {type_label}\n"
     summary += f"📅 Generated: {current_date}\n"
     summary += f"━━━━━━━━━━━━━━━━━━━━\n"
-    summary += f"👥 Total Submitters: {total_submitters}\n"
+    summary += f"📁 Total Files: {total_submitters}\n"
     summary += f"📊 Total Rows: {total_rows}\n"
     summary += f"✅ Total OK: {total_ok}\n"
     summary += f"━━━━━━━━━━━━━━━━━━━━\n\n"
@@ -1459,9 +1475,9 @@ def generate_payment_list_file(chat_id, file_types, type_label):
             f, 
             caption=f"📊 {type_label} PAYMENT LIST\n"
                     f"📅 Date: {current_date}\n"
-                    f"👥 Total Submitters: {total_submitters}\n"
+                    f"📁 Total Files: {total_submitters}\n"
                     f"✅ Total OK: {total_ok}\n\n"
-                    f"Columns: submitted_by, payment_method, payment_number, total_rows, ok_count"
+                    f"Columns: submitted_by, payment_method, payment_number, total_rows, ok_count, file_name, received_date"
         )
     
     os.remove(data_file)
@@ -2075,13 +2091,14 @@ def run_all_bots():
 
 if __name__ == "__main__":
     print("=" * 50)
-    print("👑 ID RECEIVER SYSTEM v28.0")
-    print("🎛️ CLEAN REPORT CHECK")
-    print("🎛️ NO TOP 5 SUBMITTERS")
-    print("🎛️ MAIN MENU NEVER DELETED")
+    print("👑 ID RECEIVER SYSTEM v30.0")
+    print("🎛️ UNIQUE OK COUNT")
+    print("🎛️ EACH FILE SEPARATE IN PAYMENT LIST")
+    print("🎛️ DATE FORMAT: DD-MM-YYYY")
+    print("🎛️ PAYMENT METHOD ORDER: bKash → Nagad → Rocket → Binance")
+    print("🎛️ MAIN MENU KEEPS")
     print("🎛️ USER MESSAGES KEPT")
     print("🎛️ ONLY BOT REPLIES DELETED")
-    print("🎛️ FILES NOT DELETED")
     print("=" * 50)
     
     if not MASTER_ADMIN_TOKEN:
