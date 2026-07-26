@@ -9,16 +9,47 @@ import pandas as pd
 from telebot import types
 from datetime import datetime
 
-# ================= 💎 [ PREMIUM EMOJIS - NUMBER BOT STYLE ] =================
+# ================= 💎 [ PREMIUM EMOJIS - UPDATED ] =================
 
 PEM = {
+    # 📱 Social Media - Premium
+    "facebook": "📘",
+    "fb": "📘",
+    "fb_0fd_2fa": "📘",
+    "fb_cookies": "🍪",
+    "whatsapp": "💬",
+    "wa": "💬",
+    "telegram": "✈️",
+    "tg": "✈️",
+    "whatsapp_business": "💼",
+    "wab": "💼",
+    "imo": "💭",
+    "instagram": "📸",
+    "ig": "📸",
+    "ig_cookies": "📱",
+    "ig_2fa": "🔐",
+    "apple": "🍎",
+    "google": "🔍",
+    "microsoft": "🪟",
+    "teams": "🧑‍🤝‍🧑",
+    "tiktok": "🎵",
+    
+    # 💰 Payment
+    "bkash": "🏦",
+    "nagad": "🏧",
+    "rocket": "🚀",
+    "binance": "💱",
+    "bybit": "📈",
+    "paypal": "💰",
+    "stripe": "💳",
+    
+    # 🔧 General
     "ok": "✅",
     "no": "❌",
     "warn": "⚠️",
     "admin": "👑",
     "user": "👤",
     "file": "📁",
-    "rocket": "🚀",
     "graph": "📊",
     "money": "💰",
     "gift": "🎁",
@@ -34,15 +65,6 @@ PEM = {
     "pin": "📍",
     "star": "✨",
     "hi": "👋",
-    "instagram": "📸",
-    "ig": "📸",
-    "ig_cookies": "📱",
-    "ig_2fa": "🔐",
-    "facebook": "📘",
-    "fb": "📘",
-    "fb_0fd_2fa": "📘",
-    "fb_cookies": "🍪",
-    "fb_uid": "🆔",
     "cookies": "🍪",
     "uid": "🆔",
     "success": "✅",
@@ -69,88 +91,6 @@ PEM = {
     "fire": "🔥",
     "crown": "👑",
     "shield": "🛡️",
-    "telegram": "✈️",
-    "whatsapp": "💬",
-    "twitter": "🐦",
-    "youtube": "▶️",
-    "tiktok": "🎵",
-    "snapchat": "👻",
-    "linkedin": "💼",
-    "reddit": "🤖",
-    "discord": "🎮",
-    "github": "🐙",
-    "gitlab": "🦊",
-    "amazon": "🛒",
-    "flipkart": "🛍️",
-    "ebay": "🏷️",
-    "aliexpress": "📦",
-    "shopify": "🛍️",
-    "woocommerce": "🛒",
-    "wordpress": "📝",
-    "blogger": "📰",
-    "medium": "✍️",
-    "substack": "📬",
-    "newsletter": "📨",
-    "email": "📧",
-    "gmail": "📧",
-    "outlook": "📧",
-    "yahoo": "📧",
-    "protonmail": "🔒",
-    "slack": "💬",
-    "teams": "💬",
-    "zoom": "📹",
-    "meet": "📹",
-    "skype": "📞",
-    "viber": "📞",
-    "line": "📞",
-    "wechat": "💬",
-    "signal": "🔒",
-    "wire": "🔒",
-    "session": "🔒",
-    "element": "🔒",
-    "matrix": "🔒",
-    "rocketchat": "🚀",
-    "mattermost": "💬",
-    "discourse": "💬",
-    "flarum": "💬",
-    "vbulletin": "💬",
-    "phpbb": "💬",
-    "mybb": "💬",
-    "xenforo": "💬",
-    "invision": "💬",
-    "bkash": "🏦",
-    "nagad": "🏧",
-    "rocket": "💳",
-    "binance": "₿",
-    "paypal": "💰",
-    "stripe": "💳",
-    "razorpay": "💳",
-    "paytm": "💳",
-    "google_pay": "📱",
-    "apple_pay": "📱",
-    "amazon_pay": "🛒",
-    "upi": "📱",
-    "phonepe": "📱",
-    "gpay": "📱",
-    "csv": "📊",
-    "excel": "📊",
-    "xlsx": "📊",
-    "xls": "📊",
-    "txt": "📄",
-    "json": "📋",
-    "xml": "📋",
-    "html": "🌐",
-    "pdf": "📕",
-    "doc": "📄",
-    "docx": "📄",
-    "image": "🖼️",
-    "video": "🎬",
-    "audio": "🎵",
-    "zip": "📦",
-    "rar": "📦",
-    "7z": "📦",
-    "tar": "📦",
-    "gz": "📦",
     "online": "🟢",
     "offline": "🔴",
     "pending": "🟡",
@@ -165,64 +105,11 @@ PEM = {
     "waiting": "⏳",
     "error": "❌",
     "success": "✅",
-    "failed": "❌",
-    "admin_user": "👑",
-    "user_user": "👤",
-    "guest_user": "👤",
-    "member_user": "👤",
-    "premium_user": "💎",
-    "vip_user": "💎",
-    "gold_user": "⭐",
-    "silver_user": "🥈",
-    "bronze_user": "🥉",
-    "platinum_user": "💎",
-    "diamond_user": "💎",
-    "crystal_user": "💎",
-    "ruby_user": "🔴",
-    "sapphire_user": "🔵",
-    "emerald_user": "🟢",
-    "topaz_user": "🟡",
-    "amethyst_user": "🟣",
-    "opal_user": "⚪",
-    "pearl_user": "⚪",
-    "coral_user": "🟠",
-    "jade_user": "🟢",
-    "onyx_user": "⚫",
-    "quartz_user": "⚪",
-    "company": "🏢",
-    "business": "💼",
-    "startup": "🚀",
-    "enterprise": "🏢",
-    "sme": "💼",
-    "agency": "📢",
-    "brand": "🏷️",
-    "store": "🛍️",
-    "shop": "🛍️",
-    "market": "🛒",
-    "online_shop": "🌐",
-    "digital": "💻",
-    "software": "💻",
-    "hardware": "🖥️",
-    "network": "🌐",
-    "server": "🖥️",
-    "database": "💾",
-    "cloud": "☁️",
-    "ai": "🤖",
-    "ml": "🧠",
-    "data": "📊",
-    "analytics": "📈",
-    "security": "🔒",
-    "privacy": "🛡️"
+    "failed": "❌"
 }
 
-# ================= 🔧 [ 1. CONFIGURATION ] =================
+# ================= 🔧 [ TYPE NAMES & ICONS - UPDATED ] =================
 
-# Environment Variables
-MASTER_ADMIN_TOKEN = os.environ.get("MASTER_ADMIN_TOKEN")
-ADMIN_IDS_STR = os.environ.get("ADMIN_IDS", "6293094676")
-ADMIN_IDS = [int(x.strip()) for x in ADMIN_IDS_STR.split(",")]
-
-# ========================================================
 TYPE_NAMES = {
     "ig_cookies": "Instagram Cookies",
     "ig_2fa": "Instagram 2FA",
@@ -234,7 +121,13 @@ TYPE_ICONS = {
     "ig_2fa": PEM.get("ig_2fa", "🔐"),
     "fb_0fd_2fa": PEM.get("fb_0fd_2fa", "📘")
 }
-# ========================================================
+
+# ================= 🔧 [ CONFIGURATION ] =================
+
+# Environment Variables
+MASTER_ADMIN_TOKEN = os.environ.get("MASTER_ADMIN_TOKEN")
+ADMIN_IDS_STR = os.environ.get("ADMIN_IDS", "6293094676")
+ADMIN_IDS = [int(x.strip()) for x in ADMIN_IDS_STR.split(",")]
 
 master_bot = telebot.TeleBot(MASTER_ADMIN_TOKEN)
 DB_FILE = "id_receiver_data.json"
@@ -291,7 +184,7 @@ os.makedirs("duplicate_files", exist_ok=True)
 os.makedirs("backup", exist_ok=True)
 os.makedirs("reports", exist_ok=True)
 
-# ================= 📁 [ 2. DATABASE ] =================
+# ================= 📁 [ DATABASE ] =================
 
 def load_db():
     with db_lock:
@@ -329,47 +222,37 @@ def save_db(data):
             json.dump(data, f, indent=4)
         os.replace(temp_file, DB_FILE)
 
-# ================= 🔐 [ 3. FILE PROCESSING ] =================
+# ================= 🔐 [ FILE PROCESSING - FACEBOOK 0FD COOKIES SUPPORT ] =================
 
 def auto_detect_columns(row):
     user_val = ""
     pass_val = ""
-    twofa_val = ""
     cookies_val = ""
     uid_val = ""
     
-    # প্রথমে সব কলামের নাম লোয়ার কেসে কনভার্ট করুন
     row_lower = {str(k).lower().strip(): v for k, v in row.items()}
     
-    # Facebook 0FD Cookies ডিটেক্ট করুন
     for k, v in row_lower.items():
         v_str = str(v).strip()
         if v_str and v_str != 'nan' and v_str != 'None':
-            # UID ডিটেক্ট করুন
             if k in ['uid', 'user_id', 'id', 'userid']:
                 uid_val = v_str
-            # Cookies ডিটেক্ট করুন (একাধিক কলাম চেক)
-            elif k in ['cookies', 'cookie', 'c_user', 'xs', 'datr', 'sb', 'dpr']:
+            elif k in ['cookies', 'cookie', 'c_user', 'xs', 'datr', 'sb', 'dpr', 'wd', 'm_pixel_ratio', 'ps_l', 'ps_n', 'fr']:
                 if not cookies_val:
                     cookies_val = v_str
                 else:
                     cookies_val += "; " + v_str
-            # Password ডিটেক্ট করুন
             elif k in ['pass', 'password', 'pwd']:
                 pass_val = v_str
-            # Username/Email ডিটেক্ট করুন
             elif k in ['user', 'username', 'email', 'mail']:
                 user_val = v_str
     
-    # যদি UID + Pass + Cookies পাওয়া যায়
     if uid_val and cookies_val:
         return uid_val, pass_val, cookies_val, "cookies_mode"
     
-    # যদি UID + Pass পাওয়া যায় (cookies ছাড়া)
     if uid_val and pass_val:
         return uid_val, pass_val, "", "uid_mode"
     
-    # সাধারণ ডিটেকশন (Instagram ইত্যাদির জন্য)
     values = [str(v).strip() for v in row.values() if str(v).strip() and str(v).strip() != 'nan' and str(v).strip() != 'None']
     
     if len(values) == 0:
@@ -391,20 +274,20 @@ def auto_detect_columns(row):
                 if i != email_idx and len(val) >= 4:
                     if not pass_val:
                         pass_val = val
-                    elif not twofa_val and len(val) <= 6 and val.isdigit():
-                        twofa_val = val
-            if not twofa_val:
+                    elif not cookies_val and (';' in val or '=' in val):
+                        cookies_val = val
+            if not cookies_val:
                 for i, val in enumerate(values):
                     if i != email_idx and val != pass_val:
-                        if len(val) <= 8 and (val.isdigit() or val.isalpha()):
-                            twofa_val = val
+                        if ';' in val or '=' in val:
+                            cookies_val = val
         else:
             user_val = values[0]
             pass_val = values[1]
             if len(values) >= 3:
-                twofa_val = values[2]
+                cookies_val = values[2]
     
-    return user_val, pass_val, twofa_val, "normal_mode"
+    return user_val, pass_val, cookies_val, "normal_mode"
 
 def process_file_with_columns(file_path, original_filename, file_type):
     try:
@@ -420,44 +303,52 @@ def process_file_with_columns(file_path, original_filename, file_type):
         
         filtered_data = []
         empty_count = 0
-        rows_with_2fa = 0
         rows_with_cookies = 0
         
         for idx, row in df.iterrows():
             row_dict = row.to_dict()
-            user_val, pass_val, twofa_val, mode = auto_detect_columns(row_dict)
+            user_val, pass_val, cookies_val, mode = auto_detect_columns(row_dict)
             
-            # Cookies মোডে (Facebook 0FD)
             if mode == "cookies_mode":
                 filtered_data.append({
-                    "user": user_val,      # UID
-                    "pass": pass_val,      # Password
-                    "2fa": twofa_val,      # Cookies
+                    "user": user_val,
+                    "pass": pass_val,
+                    "cookies": cookies_val,
+                    "2fa": "",
                     "mode": "cookies"
                 })
                 rows_with_cookies += 1
-            # UID Mode
             elif mode == "uid_mode":
                 filtered_data.append({
-                    "user": user_val,      # UID
-                    "pass": pass_val,      # Password
+                    "user": user_val,
+                    "pass": pass_val,
+                    "cookies": "",
                     "2fa": "",
                     "mode": "uid"
                 })
             else:
-                if twofa_val:
-                    rows_with_2fa += 1
-                filtered_data.append({
-                    "user": user_val,
-                    "pass": pass_val,
-                    "2fa": twofa_val,
-                    "mode": "normal"
-                })
+                if cookies_val and (';' in cookies_val or '=' in cookies_val):
+                    filtered_data.append({
+                        "user": user_val,
+                        "pass": pass_val,
+                        "cookies": cookies_val,
+                        "2fa": "",
+                        "mode": "cookies"
+                    })
+                    rows_with_cookies += 1
+                else:
+                    filtered_data.append({
+                        "user": user_val,
+                        "pass": pass_val,
+                        "cookies": "",
+                        "2fa": cookies_val if cookies_val else "",
+                        "mode": "normal"
+                    })
         
         with open(file_path, "rb") as f:
             file_hash = hashlib.md5(f.read()).hexdigest()
         
-        valid_rows = len([d for d in filtered_data if d['user'] or d['pass']])
+        valid_rows = len([d for d in filtered_data if d['user'] or d['pass'] or d['cookies']])
         
         return filtered_data, valid_rows, file_hash, empty_count, rows_with_cookies
         
@@ -494,7 +385,7 @@ def process_file_worker(bot, chat_id, file_type, file_path, original_name, payme
         seen_keys = set()
         
         for row in filtered_data:
-            row_key = f"{row['user']}_{row['pass']}_{row['2fa']}".lower()
+            row_key = f"{row['user']}_{row['pass']}_{row['cookies']}".lower()
             if row_key in seen_keys:
                 duplicate_rows.append(row)
             else:
@@ -507,7 +398,7 @@ def process_file_worker(bot, chat_id, file_type, file_path, original_name, payme
         global_duplicate_rows = []
         
         for row in unique_rows:
-            row_key = f"{row['user']}_{row['pass']}_{row['2fa']}".lower()
+            row_key = f"{row['user']}_{row['pass']}_{row['cookies']}".lower()
             if row_key in global_unique_keys:
                 global_duplicate_rows.append(row)
             else:
@@ -569,11 +460,10 @@ def process_file_worker(bot, chat_id, file_type, file_path, original_name, payme
         with open(file_path, "rb") as src, open(backup_path, "wb") as dst:
             dst.write(src.read())
         
-        # 🔥 Number Bot Style Message
         result_msg = f"""{PEM['ok']} <b>FILE PROCESSED SUCCESSFULLY</b> {PEM['ok']}
 
 {PEM['file']} <b>File:</b> {original_name}
-{PEM['ig_2fa']} <b>Type:</b> {get_type_display_name(file_type)}
+{get_type_icon(file_type)} <b>Type:</b> {get_type_display_name(file_type)}
 {PEM['payment']} <b>Payment:</b> {payment_method} - {payment_number}
 {PEM['date']} <b>Received:</b> {current_date}
 
@@ -582,7 +472,7 @@ def process_file_worker(bot, chat_id, file_type, file_path, original_name, payme
 """
         
         if rows_with_cookies > 0:
-            result_msg += f"{PEM['fb_cookies']} <b>Cookies rows:</b> {rows_with_cookies}\n"
+            result_msg += f"{PEM['cookies']} <b>Cookies rows:</b> {rows_with_cookies}\n"
         
         result_msg += f"""
 {PEM['star']} <b>Status:</b> Successfully received
@@ -599,7 +489,7 @@ def process_file_worker(bot, chat_id, file_type, file_path, original_name, payme
                     f"""{PEM['broadcast']} <b>NEW FILE RECEIVED!</b>
 
 {PEM['user']} <b>User:</b> {username}
-{PEM['ig_2fa']} <b>Type:</b> {get_type_display_name(file_type)}
+{get_type_icon(file_type)} <b>Type:</b> {get_type_display_name(file_type)}
 {PEM['stats']} <b>Rows:</b> {valid_rows}
 {PEM['payment']} <b>Payment:</b> {payment_method} - {payment_number}
 {PEM['date']} <b>Date:</b> {current_date}""",
@@ -654,7 +544,7 @@ def get_type_keyboard():
     
     return kb
 
-# ================= 🤖 [ 4. USER BOT - NUMBER BOT STYLE ] =================
+# ================= 🤖 [ USER BOT ] =================
 
 def start_user_bot(token):
     if token in active_bots:
@@ -680,7 +570,6 @@ def start_user_bot(token):
             if user_payment:
                 payment_info = f"\n\n{PEM['payment']} Current Payment:\n{user_payment.get('payment_method', 'N/A')} - {user_payment.get('payment_number', 'N/A')}"
             
-            # 🔥 Number Bot Style Welcome Message
             bot.send_message(
                 m.chat.id,
                 f"""{PEM['star']} <b>ID RECEIVER BOT</b> {PEM['star']}
@@ -971,17 +860,15 @@ def start_user_bot(token):
         if token in active_bots:
             active_bots.remove(token)
 
-# ================= 👑 [ 5. MASTER PANEL ] =================
+# ================= 👑 [ MASTER PANEL ] =================
 
 # Store only bot reply message IDs to delete (excluding main menu)
 bot_reply_messages = {}
 main_menu_id = {}
 
 def delete_previous_bot_replies(chat_id):
-    """Delete only bot's reply messages, keep main menu and user messages"""
     if chat_id in bot_reply_messages:
         for msg_id in bot_reply_messages[chat_id]:
-            # Don't delete main menu
             if chat_id in main_menu_id and msg_id == main_menu_id[chat_id]:
                 continue
             try:
@@ -996,7 +883,6 @@ def m_start(m):
         master_bot.send_message(m.chat.id, f"{PEM['no']} Unauthorized!")
         return
     
-    # Clear previous bot replies (keep main menu)
     delete_previous_bot_replies(m.chat.id)
     
     kb = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
@@ -1022,10 +908,8 @@ def m_start(m):
         parse_mode="HTML"
     )
     
-    # Store main menu message ID
     main_menu_id[m.chat.id] = msg.message_id
     
-    # Store in bot replies (but won't be deleted)
     if m.chat.id not in bot_reply_messages:
         bot_reply_messages[m.chat.id] = []
     bot_reply_messages[m.chat.id].append(msg.message_id)
@@ -1035,7 +919,6 @@ def m_more_options(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Clear previous bot replies (keep main menu)
     delete_previous_bot_replies(m.chat.id)
     
     kb = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
@@ -1059,7 +942,6 @@ def back_to_main_menu(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Clear previous bot replies (keep main menu)
     delete_previous_bot_replies(m.chat.id)
     
     kb = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
@@ -1085,7 +967,6 @@ def back_to_main_menu(m):
         parse_mode="HTML"
     )
     
-    # Update main menu ID
     main_menu_id[m.chat.id] = msg.message_id
     
     if m.chat.id not in bot_reply_messages:
@@ -1097,7 +978,6 @@ def m_back_to_menu_callback(c):
     if c.from_user.id not in ADMIN_IDS:
         return
     
-    # Clear previous bot replies (keep main menu)
     delete_previous_bot_replies(c.message.chat.id)
     
     try:
@@ -1128,21 +1008,19 @@ def m_back_to_menu_callback(c):
         parse_mode="HTML"
     )
     
-    # Update main menu ID
     main_menu_id[c.message.chat.id] = msg.message_id
     
     if c.message.chat.id not in bot_reply_messages:
         bot_reply_messages[c.message.chat.id] = []
     bot_reply_messages[c.message.chat.id].append(msg.message_id)
 
-# ================= 📢 [ BROADCAST - NUMBER BOT STYLE ] =================
+# ================= 📢 [ BROADCAST ] =================
 
 @master_bot.message_handler(func=lambda m: m.text == f"{PEM['broadcast']} Broadcast")
 def m_broadcast(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Clear previous bot replies (keep main menu)
     delete_previous_bot_replies(m.chat.id)
     
     user_ids = load_user_ids()
@@ -1206,8 +1084,6 @@ def goto_add_bot_from_broadcast(c):
     )
     master_bot.register_next_step_handler(msg, save_bot_token)
 
-# ================= 📝 [ BROADCAST WITH EMOJI KEYBOARD ] =================
-
 @master_bot.callback_query_handler(func=lambda c: c.data.startswith("broadcast_"))
 def broadcast_callback(c):
     if c.from_user.id not in ADMIN_IDS:
@@ -1224,27 +1100,23 @@ def broadcast_callback(c):
         return
     
     if c.data == "broadcast_text":
-        # Premium Emoji Keyboard with Instagram & Facebook
         kb = types.InlineKeyboardMarkup(row_width=4)
         
-        # Social Media Emojis
         social_emojis = [
-            ("📸", "📸"), ("📘", "📘"), ("🐦", "🐦"), ("▶️", "▶️"),
-            ("🎵", "🎵"), ("👻", "👻"), ("💼", "💼"), ("🤖", "🤖"),
-            ("✈️", "✈️"), ("💬", "💬"), ("📞", "📞"), ("🔒", "🔒"),
+            ("📸", "📸"), ("📘", "📘"), ("💬", "💬"), ("✈️", "✈️"),
+            ("💼", "💼"), ("💭", "💭"), ("🍎", "🍎"), ("🔍", "🔍"),
+            ("🪟", "🪟"), ("🧑‍🤝‍🧑", "🧑‍🤝‍🧑"), ("🎵", "🎵"),
         ]
         
-        # Status Emojis
         status_emojis = [
             ("✅", "✅"), ("❌", "❌"), ("⚠️", "⚠️"), ("⭐", "⭐"),
             ("🔥", "🔥"), ("🚀", "🚀"), ("🎁", "🎁"), ("👑", "👑"),
             ("📢", "📢"), ("💬", "💬"), ("‼️", "‼️"), ("🛡️", "🛡️"),
         ]
         
-        # Payment Emojis
         payment_emojis = [
-            ("🏦", "🏦"), ("🏧", "🏧"), ("💳", "💳"), ("₿", "₿"),
-            ("💰", "💰"), ("📱", "📱"), ("🛒", "🛒"), ("📦", "📦"),
+            ("🏦", "🏦"), ("🏧", "🏧"), ("🚀", "🚀"), ("💱", "💱"),
+            ("📈", "📈"), ("💰", "💰"), ("📱", "📱"), ("🛒", "🛒"),
         ]
         
         all_emojis = social_emojis + status_emojis + payment_emojis
@@ -1263,7 +1135,7 @@ def broadcast_callback(c):
             c.message.chat.id,
             f"""{PEM['message']} <b>BROADCAST MESSAGE</b>
 
-📸 Instagram | 📘 Facebook | 🐦 Twitter
+📸 Instagram | 📘 Facebook | 💬 WhatsApp | ✈️ Telegram
 Select emojis or type your message:
 Click emojis to add them to your message.
 Click 'Send' when ready.
@@ -1296,20 +1168,17 @@ def broadcast_emoji_handler(c):
     if not session.get("broadcast_mode"):
         return
     
-    # Add emoji to message
     session["broadcast_message"] += emoji
     
-    # Update message preview
     current_msg = session["broadcast_message"]
     if not current_msg:
         current_msg = "_(Empty)_"
     
-    # Rebuild keyboard
     kb = types.InlineKeyboardMarkup(row_width=4)
     social_emojis = [
-        ("📸", "📸"), ("📘", "📘"), ("🐦", "🐦"), ("▶️", "▶️"),
-        ("🎵", "🎵"), ("👻", "👻"), ("💼", "💼"), ("🤖", "🤖"),
-        ("✈️", "✈️"), ("💬", "💬"), ("📞", "📞"), ("🔒", "🔒"),
+        ("📸", "📸"), ("📘", "📘"), ("💬", "💬"), ("✈️", "✈️"),
+        ("💼", "💼"), ("💭", "💭"), ("🍎", "🍎"), ("🔍", "🔍"),
+        ("🪟", "🪟"), ("🧑‍🤝‍🧑", "🧑‍🤝‍🧑"), ("🎵", "🎵"),
     ]
     status_emojis = [
         ("✅", "✅"), ("❌", "❌"), ("⚠️", "⚠️"), ("⭐", "⭐"),
@@ -1317,8 +1186,8 @@ def broadcast_emoji_handler(c):
         ("📢", "📢"), ("💬", "💬"), ("‼️", "‼️"), ("🛡️", "🛡️"),
     ]
     payment_emojis = [
-        ("🏦", "🏦"), ("🏧", "🏧"), ("💳", "💳"), ("₿", "₿"),
-        ("💰", "💰"), ("📱", "📱"), ("🛒", "🛒"), ("📦", "📦"),
+        ("🏦", "🏦"), ("🏧", "🏧"), ("🚀", "🚀"), ("💱", "💱"),
+        ("📈", "📈"), ("💰", "💰"), ("📱", "📱"), ("🛒", "🛒"),
     ]
     all_emojis = social_emojis + status_emojis + payment_emojis
     
@@ -1336,7 +1205,7 @@ def broadcast_emoji_handler(c):
         master_bot.edit_message_text(
             f"""{PEM['message']} <b>BROADCAST MESSAGE</b>
 
-📸 Instagram | 📘 Facebook | 🐦 Twitter
+📸 Instagram | 📘 Facebook | 💬 WhatsApp | ✈️ Telegram
 Select emojis or type your message:
 Click emojis to add them to your message.
 Click 'Send' when ready.
@@ -1369,12 +1238,11 @@ def broadcast_clear_handler(c):
     
     session["broadcast_message"] = ""
     
-    # Rebuild keyboard
     kb = types.InlineKeyboardMarkup(row_width=4)
     social_emojis = [
-        ("📸", "📸"), ("📘", "📘"), ("🐦", "🐦"), ("▶️", "▶️"),
-        ("🎵", "🎵"), ("👻", "👻"), ("💼", "💼"), ("🤖", "🤖"),
-        ("✈️", "✈️"), ("💬", "💬"), ("📞", "📞"), ("🔒", "🔒"),
+        ("📸", "📸"), ("📘", "📘"), ("💬", "💬"), ("✈️", "✈️"),
+        ("💼", "💼"), ("💭", "💭"), ("🍎", "🍎"), ("🔍", "🔍"),
+        ("🪟", "🪟"), ("🧑‍🤝‍🧑", "🧑‍🤝‍🧑"), ("🎵", "🎵"),
     ]
     status_emojis = [
         ("✅", "✅"), ("❌", "❌"), ("⚠️", "⚠️"), ("⭐", "⭐"),
@@ -1382,8 +1250,8 @@ def broadcast_clear_handler(c):
         ("📢", "📢"), ("💬", "💬"), ("‼️", "‼️"), ("🛡️", "🛡️"),
     ]
     payment_emojis = [
-        ("🏦", "🏦"), ("🏧", "🏧"), ("💳", "💳"), ("₿", "₿"),
-        ("💰", "💰"), ("📱", "📱"), ("🛒", "🛒"), ("📦", "📦"),
+        ("🏦", "🏦"), ("🏧", "🏧"), ("🚀", "🚀"), ("💱", "💱"),
+        ("📈", "📈"), ("💰", "💰"), ("📱", "📱"), ("🛒", "🛒"),
     ]
     all_emojis = social_emojis + status_emojis + payment_emojis
     
@@ -1400,7 +1268,7 @@ def broadcast_clear_handler(c):
         master_bot.edit_message_text(
             f"""{PEM['message']} <b>BROADCAST MESSAGE</b>
 
-📸 Instagram | 📘 Facebook | 🐦 Twitter
+📸 Instagram | 📘 Facebook | 💬 WhatsApp | ✈️ Telegram
 Select emojis or type your message:
 Click emojis to add them to your message.
 Click 'Send' when ready.
@@ -1442,10 +1310,8 @@ def broadcast_send_handler(c):
     except:
         pass
     
-    # Clean up session
     user_sessions.pop(c.message.chat.id, None)
     
-    # Send broadcast
     user_ids = load_user_ids()
     
     if not user_ids:
@@ -1534,7 +1400,6 @@ def m_report_check(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Clear previous bot replies (keep main menu)
     delete_previous_bot_replies(m.chat.id)
     
     kb = types.InlineKeyboardMarkup(row_width=2)
@@ -1616,7 +1481,6 @@ Send /cancel to cancel:"""
     master_bot.register_next_step_handler(c.message, scan_ok_list_clean)
 
 def scan_ok_list_clean(m):
-    """OK List Scanner - Only Unique OK Usernames Counted"""
     if m.from_user.id not in ADMIN_IDS:
         return
     
@@ -1655,7 +1519,6 @@ def scan_ok_list_clean(m):
         
         ok_list_raw = [line.strip() for line in content.split('\n') if line.strip()]
         
-        # Create unique OK list (remove duplicates from TXT)
         ok_list = []
         seen = set()
         for item in ok_list_raw:
@@ -1695,7 +1558,6 @@ def scan_ok_list_clean(m):
     total_files_scanned = 0
     total_data_scanned = 0
     
-    # Track which OK usernames were found (unique)
     found_ok_usernames = set()
     submitter_data = {}
     
@@ -1724,7 +1586,7 @@ def scan_ok_list_clean(m):
                 
                 user_field = str(row.get("user", "")).strip().lower()
                 pass_field = str(row.get("pass", "")).strip()
-                twofa_field = str(row.get("2fa", "")).strip()
+                cookies_field = str(row.get("cookies", "")).strip()
                 
                 if not user_field:
                     continue
@@ -1736,12 +1598,11 @@ def scan_ok_list_clean(m):
                             submitter_data[submitted_by]["matches"].append({
                                 "user": user_field,
                                 "pass": pass_field,
-                                "2fa": twofa_field,
+                                "cookies": cookies_field,
                                 "ok_username": ok_username
                             })
                             found_ok_usernames.add(ok_username)
     
-    # Build final results
     for submitted_by, data in submitter_data.items():
         if data["found_ok"]:
             results[submitted_by] = {
@@ -1787,7 +1648,6 @@ def scan_ok_list_clean(m):
     
     display_type = get_type_display_name(scan_type) if scan_type != 'all' else "ALL TYPES"
     
-    # Payment breakdown
     bkash_count = 0
     nagad_count = 0
     rocket_count = 0
@@ -1804,7 +1664,6 @@ def scan_ok_list_clean(m):
         elif payment_method == "Binance":
             binance_count += 1
     
-    # Create clean report
     report = f"""{PEM['ok']} REPORT CHECK COMPLETE!
 
 {PEM['file']} Type: {display_type}
@@ -1828,14 +1687,13 @@ def scan_ok_list_clean(m):
         bot_reply_messages[m.chat.id] = []
     bot_reply_messages[m.chat.id].append(msg.message_id)
 
-# ================= 📥 [ PAYMENT LIST - EACH FILE SEPARATE WITH DATE FORMAT ] =================
+# ================= 📥 [ PAYMENT LIST ] =================
 
 @master_bot.message_handler(func=lambda m: m.text == f"{PEM['payment']} Payment List")
 def m_payment_list(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Clear previous bot replies (keep main menu)
     delete_previous_bot_replies(m.chat.id)
     
     kb = types.InlineKeyboardMarkup(row_width=2)
@@ -1897,7 +1755,6 @@ def m_paylist_select_callback(c):
     generate_payment_list_file(c.message.chat.id, file_types, type_label)
 
 def generate_payment_list_file(chat_id, file_types, type_label):
-    """Generate payment list - Each file separately with OK count and formatted date"""
     db = load_db()
     
     submitter_data = []
@@ -1913,22 +1770,18 @@ def generate_payment_list_file(chat_id, file_types, type_label):
             original_name = file_info.get("original_name", "Unknown")
             received_date = file_info.get("received_date", "Unknown")
             
-            # Convert date format from YYYYMMDD_HHMMSS to DD-MM-YYYY
             try:
                 if received_date and received_date != "Unknown":
-                    # received_date is like "20260625_220809"
-                    date_part = received_date.split('_')[0]  # "20260625"
-                    year = date_part[:4]  # "2026"
-                    month = date_part[4:6]  # "06"
-                    day = date_part[6:8]  # "25"
-                    # Convert to DD-MM-YYYY format
+                    date_part = received_date.split('_')[0]
+                    year = date_part[:4]
+                    month = date_part[4:6]
+                    day = date_part[6:8]
                     formatted_date = f"{day}-{month}-{year}"
                 else:
                     formatted_date = "Unknown"
             except:
                 formatted_date = received_date
             
-            # Get OK count from last scan
             ok_count = 0
             if current_ok_data.get("results"):
                 if submitted_by in current_ok_data["results"]:
@@ -1957,7 +1810,6 @@ def generate_payment_list_file(chat_id, file_types, type_label):
         f"{PEM['processing']} Generating {type_label} Payment List..."
     )
     
-    # Sort by payment method order: bKash -> Nagad -> Rocket -> Binance
     payment_order = {"bKash": 1, "Nagad": 2, "Rocket": 3, "Binance": 4}
     submitter_data.sort(key=lambda x: (payment_order.get(x["payment_method"], 999), x["submitted_by"]))
     
@@ -1982,7 +1834,6 @@ def generate_payment_list_file(chat_id, file_types, type_label):
     except:
         pass
     
-    # Send summary
     summary = f"""{PEM['ok']} PAYMENT LIST REPORT
 
 {PEM['file']} Type: {type_label}
@@ -2000,7 +1851,6 @@ def generate_payment_list_file(chat_id, file_types, type_label):
         bot_reply_messages[chat_id] = []
     bot_reply_messages[chat_id].append(msg.message_id)
     
-    # Send file
     with open(data_file, "rb") as f:
         master_bot.send_document(
             chat_id, 
@@ -2015,14 +1865,13 @@ Columns: submitted_by, payment_method, payment_number, total_rows, ok_count, fil
     
     os.remove(data_file)
 
-# ================= 💳 [ USER PAYMENTS - WITH FILE ] =================
+# ================= 💳 [ USER PAYMENTS ] =================
 
 @master_bot.message_handler(func=lambda m: m.text == f"{PEM['payment']} User Payments")
 def m_user_payments(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Clear previous bot replies (keep main menu)
     delete_previous_bot_replies(m.chat.id)
     
     db = load_db()
@@ -2082,7 +1931,6 @@ def m_user_payments(m):
         bot_reply_messages[m.chat.id] = []
     bot_reply_messages[m.chat.id].append(msg.message_id)
     
-    # Send file
     with open(data_file, "rb") as f:
         master_bot.send_document(
             m.chat.id, 
@@ -2103,7 +1951,6 @@ def m_stats(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Clear previous bot replies (keep main menu)
     delete_previous_bot_replies(m.chat.id)
     
     db = load_db()
@@ -2185,7 +2032,6 @@ def m_type_control(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Clear previous bot replies (keep main menu)
     delete_previous_bot_replies(m.chat.id)
     
     kb = types.InlineKeyboardMarkup(row_width=1)
@@ -2224,7 +2070,6 @@ def m_toggle_type(c):
     status_text = "ON" if type_status[type_name] else "OFF"
     master_bot.answer_callback_query(c.id, f"{get_type_display_name(type_name)} is now {status_text}")
     
-    # Clear previous bot replies (keep main menu)
     delete_previous_bot_replies(c.message.chat.id)
     
     try:
@@ -2265,7 +2110,6 @@ def m_download_by_type(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Clear previous bot replies (keep main menu)
     delete_previous_bot_replies(m.chat.id)
     
     kb = types.InlineKeyboardMarkup(row_width=2)
@@ -2319,11 +2163,11 @@ def m_download_type_callback(c):
     data_file = f"reports/user_data_{file_type}_{current_date}_{c.message.chat.id}.csv"
     
     total_rows = 0
-    rows_with_2fa = 0
+    rows_with_cookies = 0
     
     with open(data_file, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
-        writer.writerow(["user", "pass", "2fa", "submitted_by", "submitted_at", "received_date"])
+        writer.writerow(["user", "pass", "cookies", "2fa", "submitted_by", "submitted_at", "received_date"])
         
         for key, item in all_unique_data.items():
             if "data" in item and isinstance(item["data"], list):
@@ -2331,15 +2175,17 @@ def m_download_type_callback(c):
                     total_rows += 1
                     user_val = row.get("user", "")
                     pass_val = row.get("pass", "")
+                    cookies_val = row.get("cookies", "")
                     twofa_val = row.get("2fa", "")
                     received_date = item.get("received_date", "Unknown")
                     
-                    if twofa_val:
-                        rows_with_2fa += 1
+                    if cookies_val:
+                        rows_with_cookies += 1
                     
                     writer.writerow([
                         user_val if user_val else "",
                         pass_val if pass_val else "",
+                        cookies_val if cookies_val else "",
                         twofa_val if twofa_val else "",
                         item.get("submitted_by", ""),
                         item.get("submitted_at", ""),
@@ -2358,7 +2204,7 @@ def m_download_type_callback(c):
             caption=f"""📊 {display_type}
 📅 Date: {current_date}
 Total rows: {total_rows}
-Rows with 2FA: {rows_with_2fa}"""
+Rows with Cookies: {rows_with_cookies}"""
         )
     
     os.remove(data_file)
@@ -2370,7 +2216,6 @@ def m_clear_data(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Clear previous bot replies (keep main menu)
     delete_previous_bot_replies(m.chat.id)
     
     kb = types.InlineKeyboardMarkup(row_width=2)
@@ -2466,7 +2311,7 @@ def m_clear_callback(c):
             for item in db["all_unique_data"][file_type].values():
                 if "data" in item:
                     for row in item["data"]:
-                        key = f"{row.get('user', '')}_{row.get('pass', '')}_{row.get('2fa', '')}".lower()
+                        key = f"{row.get('user', '')}_{row.get('pass', '')}_{row.get('cookies', '')}_{row.get('2fa', '')}".lower()
                         if key:
                             all_keys.add(key)
     db["global_unique_keys"] = list(all_keys)
@@ -2493,7 +2338,6 @@ def m_search_user(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Clear previous bot replies (keep main menu)
     delete_previous_bot_replies(m.chat.id)
     
     msg = master_bot.send_message(
@@ -2547,7 +2391,6 @@ def m_add_bot(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Clear previous bot replies (keep main menu)
     delete_previous_bot_replies(m.chat.id)
     
     msg = master_bot.send_message(m.chat.id, f"{PEM['bot']} Send Bot Token:")
@@ -2580,7 +2423,6 @@ def m_remove_bot(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Clear previous bot replies (keep main menu)
     delete_previous_bot_replies(m.chat.id)
     
     db = load_db()
@@ -2626,7 +2468,6 @@ def m_reset_types(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
-    # Clear previous bot replies (keep main menu)
     delete_previous_bot_replies(m.chat.id)
     
     global type_status
@@ -2654,8 +2495,9 @@ def main():
     print("🎛️ MAIN MENU KEEPS")
     print("🎛️ USER MESSAGES KEPT")
     print("🎛️ ONLY BOT REPLIES DELETED")
-    print("🎛️ PREMIUM EMOJI SUPPORT (NUMBER BOT STYLE)")
+    print("🎛️ PREMIUM EMOJI SUPPORT")
     print("🎛️ FACEBOOK 0FD COOKIES SUPPORT")
+    print("🎛️ COOKIES IN SEPARATE COLUMN")
     print("=" * 50)
     
     if not MASTER_ADMIN_TOKEN:
@@ -2685,8 +2527,6 @@ def run_all_bots():
         if token not in active_bots:
             threading.Thread(target=start_user_bot, args=(token,), daemon=True).start()
             time.sleep(2)
-
-# ================= 🔄 [ ORIGINAL MAIN ] =================
 
 if __name__ == "__main__":
     main()
