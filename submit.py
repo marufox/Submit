@@ -1,4 +1,3 @@
-
 import telebot
 import os
 import json
@@ -9,6 +8,454 @@ import csv
 import pandas as pd
 from telebot import types
 from datetime import datetime
+
+# ================= 💎 [ PREMIUM EMOJIS ] =================
+
+PREMIUM_EMOJIS = {
+    # 📱 Social Media
+    "instagram": "📸",
+    "ig": "📸",
+    "ig_cookies": "📱",
+    "ig_2fa": "🔐",
+    "facebook": "📘",
+    "fb": "📘",
+    "fb_0fd_2fa": "📘",
+    "fb_cookies": "🍪",
+    "fb_uid": "🆔",
+    
+    # 🔧 General
+    "cookies": "🍪",
+    "uid": "🆔",
+    "success": "✅",
+    "error": "❌",
+    "warning": "⚠️",
+    "file": "📁",
+    "payment": "💳",
+    "stats": "📊",
+    "user": "👤",
+    "bot": "🤖",
+    "master": "👑",
+    "time": "⏰",
+    "date": "📅",
+    "download": "📥",
+    "upload": "📤",
+    "settings": "⚙️",
+    "lock": "🔒",
+    "unlock": "🔓",
+    "search": "🔍",
+    "trash": "🗑️",
+    "refresh": "🔄",
+    "add": "➕",
+    "remove": "❌",
+    "back": "🔙",
+    "forward": "🔜",
+    "info": "ℹ️",
+    "check": "✔️",
+    "cross": "✖️",
+    "broadcast": "📢",
+    "message": "💬",
+    "attention": "‼️",
+    "warning_sign": "⚠️",
+    "star": "⭐",
+    "fire": "🔥",
+    "rocket": "🚀",
+    "gift": "🎁",
+    "crown": "👑",
+    "shield": "🛡️",
+    "instagram_logo": "📸",
+    "facebook_logo": "📘",
+    "telegram": "✈️",
+    "whatsapp": "💬",
+    "twitter": "🐦",
+    "youtube": "▶️",
+    "tiktok": "🎵",
+    "snapchat": "👻",
+    "pinterest": "📌",
+    "linkedin": "💼",
+    "reddit": "🤖",
+    "discord": "🎮",
+    "github": "🐙",
+    "gitlab": "🦊",
+    "bitbucket": "🔷",
+    "amazon": "🛒",
+    "flipkart": "🛍️",
+    "ebay": "🏷️",
+    "aliexpress": "📦",
+    "shopify": "🛍️",
+    "woocommerce": "🛒",
+    "wordpress": "📝",
+    "blogger": "📰",
+    "medium": "✍️",
+    "substack": "📬",
+    "newsletter": "📨",
+    "email": "📧",
+    "gmail": "📧",
+    "outlook": "📧",
+    "yahoo": "📧",
+    "protonmail": "🔒",
+    "telegram_bot": "🤖",
+    "whatsapp_bot": "🤖",
+    "messenger_bot": "🤖",
+    "slack": "💬",
+    "teams": "💬",
+    "zoom": "📹",
+    "meet": "📹",
+    "skype": "📞",
+    "viber": "📞",
+    "line": "📞",
+    "wechat": "💬",
+    "signal": "🔒",
+    "wire": "🔒",
+    "session": "🔒",
+    "element": "🔒",
+    "matrix": "🔒",
+    "rocketchat": "🚀",
+    "mattermost": "💬",
+    "discourse": "💬",
+    "flarum": "💬",
+    "vbulletin": "💬",
+    "phpbb": "💬",
+    "mybb": "💬",
+    "xenforo": "💬",
+    "invision": "💬",
+    "wordpress_blog": "📝",
+    "blogger_blog": "📰",
+    "medium_blog": "✍️",
+    "substack_blog": "📬",
+    "newsletter_blog": "📨",
+    
+    # 💰 Payment
+    "bkash": "🏦",
+    "nagad": "🏧",
+    "rocket": "💳",
+    "binance": "₿",
+    "paypal": "💰",
+    "stripe": "💳",
+    "razorpay": "💳",
+    "paytm": "💳",
+    "google_pay": "📱",
+    "apple_pay": "📱",
+    "amazon_pay": "🛒",
+    "upi": "📱",
+    "phonepe": "📱",
+    "gpay": "📱",
+    
+    # 📁 File Types
+    "csv": "📊",
+    "excel": "📊",
+    "xlsx": "📊",
+    "xls": "📊",
+    "txt": "📄",
+    "json": "📋",
+    "xml": "📋",
+    "html": "🌐",
+    "pdf": "📕",
+    "doc": "📄",
+    "docx": "📄",
+    "image": "🖼️",
+    "video": "🎬",
+    "audio": "🎵",
+    "zip": "📦",
+    "rar": "📦",
+    "7z": "📦",
+    "tar": "📦",
+    "gz": "📦",
+    
+    # 🎯 Status
+    "online": "🟢",
+    "offline": "🔴",
+    "pending": "🟡",
+    "approved": "✅",
+    "rejected": "❌",
+    "processing": "⏳",
+    "completed": "✅",
+    "cancelled": "❌",
+    "paused": "⏸️",
+    "stopped": "⏹️",
+    "running": "▶️",
+    "waiting": "⏳",
+    "error": "❌",
+    "success": "✅",
+    "failed": "❌",
+    
+    # 👤 User
+    "admin": "👑",
+    "user": "👤",
+    "guest": "👤",
+    "member": "👤",
+    "premium": "💎",
+    "vip": "💎",
+    "gold": "⭐",
+    "silver": "🥈",
+    "bronze": "🥉",
+    "platinum": "💎",
+    "diamond": "💎",
+    "crystal": "💎",
+    "ruby": "🔴",
+    "sapphire": "🔵",
+    "emerald": "🟢",
+    "topaz": "🟡",
+    "amethyst": "🟣",
+    "opal": "⚪",
+    "pearl": "⚪",
+    "coral": "🟠",
+    "jade": "🟢",
+    "onyx": "⚫",
+    "quartz": "⚪",
+    
+    # 🏢 Company
+    "company": "🏢",
+    "business": "💼",
+    "startup": "🚀",
+    "enterprise": "🏢",
+    "sme": "💼",
+    "agency": "📢",
+    "brand": "🏷️",
+    "store": "🛍️",
+    "shop": "🛍️",
+    "market": "🛒",
+    "online": "🌐",
+    "digital": "💻",
+    "software": "💻",
+    "hardware": "🖥️",
+    "network": "🌐",
+    "server": "🖥️",
+    "database": "💾",
+    "cloud": "☁️",
+    "ai": "🤖",
+    "ml": "🧠",
+    "data": "📊",
+    "analytics": "📈",
+    "security": "🔒",
+    "privacy": "🛡️",
+    
+    # 🎨 Misc
+    "emoji": "😊",
+    "smile": "😊",
+    "happy": "😄",
+    "sad": "😢",
+    "angry": "😡",
+    "love": "❤️",
+    "heart": "❤️",
+    "like": "👍",
+    "dislike": "👎",
+    "ok": "👌",
+    "peace": "✌️",
+    "yes": "✅",
+    "no": "❌",
+    "maybe": "🤔",
+    "idk": "🤷",
+    "help": "🆘",
+    "support": "🆘",
+    "care": "🤗",
+    "hug": "🤗",
+    "high_five": "🖐️",
+    "handshake": "🤝",
+    "clap": "👏",
+    "pray": "🙏",
+    "thank_you": "🙏",
+    "welcome": "👋",
+    "hello": "👋",
+    "hi": "👋",
+    "bye": "👋",
+    "goodbye": "👋",
+    "night": "🌙",
+    "day": "☀️",
+    "sun": "☀️",
+    "moon": "🌙",
+    "star": "⭐",
+    "rain": "🌧️",
+    "snow": "❄️",
+    "cloud": "☁️",
+    "storm": "⛈️",
+    "thunder": "⚡",
+    "lightning": "⚡",
+    "rainbow": "🌈",
+    "flower": "🌸",
+    "tree": "🌳",
+    "plant": "🌱",
+    "leaf": "🍃",
+    "mountain": "🏔️",
+    "ocean": "🌊",
+    "river": "🏞️",
+    "lake": "🏞️",
+    "forest": "🌲",
+    "desert": "🏜️",
+    "island": "🏝️",
+    "city": "🏙️",
+    "village": "🏘️",
+    "house": "🏠",
+    "building": "🏢",
+    "office": "🏢",
+    "school": "🏫",
+    "hospital": "🏥",
+    "bank": "🏦",
+    "atm": "🏧",
+    "restaurant": "🍽️",
+    "cafe": "☕",
+    "hotel": "🏨",
+    "park": "🏞️",
+    "beach": "🏖️",
+    "airport": "✈️",
+    "train": "🚆",
+    "bus": "🚌",
+    "car": "🚗",
+    "bike": "🏍️",
+    "cycle": "🚲",
+    "walk": "🚶",
+    "run": "🏃",
+    "fly": "🛫",
+    "land": "🛬",
+    "ship": "🚢",
+    "boat": "⛵",
+    "submarine": "🛸",
+    "rocket": "🚀",
+    "satellite": "🛰️",
+    "space": "🌌",
+    "alien": "👽",
+    "robot": "🤖",
+    "android": "🤖",
+    "apple": "🍎",
+    "banana": "🍌",
+    "grape": "🍇",
+    "watermelon": "🍉",
+    "orange": "🍊",
+    "lemon": "🍋",
+    "cherry": "🍒",
+    "strawberry": "🍓",
+    "blueberry": "🫐",
+    "peach": "🍑",
+    "mango": "🥭",
+    "pineapple": "🍍",
+    "coconut": "🥥",
+    "kiwi": "🥝",
+    "tomato": "🍅",
+    "eggplant": "🍆",
+    "corn": "🌽",
+    "bread": "🍞",
+    "pizza": "🍕",
+    "burger": "🍔",
+    "fries": "🍟",
+    "hotdog": "🌭",
+    "taco": "🌮",
+    "burrito": "🌯",
+    "sushi": "🍣",
+    "ramen": "🍜",
+    "noodles": "🍜",
+    "rice": "🍚",
+    "curry": "🍛",
+    "cake": "🎂",
+    "donut": "🍩",
+    "cookie": "🍪",
+    "icecream": "🍦",
+    "chocolate": "🍫",
+    "candy": "🍬",
+    "lollipop": "🍭",
+    "popcorn": "🍿",
+    "coffee": "☕",
+    "tea": "🍵",
+    "juice": "🧃",
+    "milk": "🥛",
+    "water": "💧",
+    "beer": "🍺",
+    "wine": "🍷",
+    "whiskey": "🥃",
+    "vodka": "🍸",
+    "cocktail": "🍹",
+    "champagne": "🍾",
+    "birthday": "🎂",
+    "party": "🎉",
+    "celebration": "🎊",
+    "confetti": "🎊",
+    "balloon": "🎈",
+    "gift": "🎁",
+    "ribbon": "🎀",
+    "candle": "🕯️",
+    "fireworks": "🎆",
+    "sparkler": "🎇",
+    "music": "🎵",
+    "song": "🎵",
+    "dance": "💃",
+    "concert": "🎶",
+    "festival": "🎪",
+    "movie": "🎬",
+    "cinema": "🎥",
+    "theater": "🎭",
+    "book": "📚",
+    "magazine": "📰",
+    "newspaper": "📰",
+    "article": "📝",
+    "blog": "📝",
+    "podcast": "🎙️",
+    "radio": "📻",
+    "tv": "📺",
+    "game": "🎮",
+    "sport": "⚽",
+    "football": "⚽",
+    "basketball": "🏀",
+    "cricket": "🏏",
+    "tennis": "🎾",
+    "badminton": "🏸",
+    "volleyball": "🏐",
+    "baseball": "⚾",
+    "golf": "🏌️",
+    "swim": "🏊",
+    "dive": "🤿",
+    "surf": "🏄",
+    "skate": "🛹",
+    "snowboard": "🏂",
+    "ski": "⛷️",
+    "climb": "🧗",
+    "hike": "🥾",
+    "camp": "🏕️",
+    "fishing": "🎣",
+    "hunting": "🔫",
+    "archery": "🏹",
+    "shooting": "🎯",
+    "boxing": "🥊",
+    "wrestling": "🤼",
+    "mma": "🥋",
+    "karate": "🥋",
+    "taekwondo": "🥋",
+    "yoga": "🧘",
+    "gym": "🏋️",
+    "fitness": "💪",
+    "health": "❤️",
+    "medicine": "💊",
+    "doctor": "👨‍⚕️",
+    "nurse": "👩‍⚕️",
+    "dentist": "🦷",
+    "pharmacy": "💊",
+    "lab": "🧪",
+    "research": "🔬",
+    "science": "🔬",
+    "technology": "💻",
+    "engineering": "🔧",
+    "math": "🔢",
+    "physics": "⚛️",
+    "chemistry": "🧪",
+    "biology": "🧬",
+    "geography": "🌍",
+    "history": "📜",
+    "art": "🎨",
+    "photography": "📸",
+    "design": "🎨",
+    "fashion": "👗",
+    "makeup": "💄",
+    "beauty": "💅",
+    "skin": "🧴",
+    "hair": "💇",
+    "nail": "💅",
+    "spa": "🧖",
+    "massage": "💆",
+    "relax": "🧘",
+    "sleep": "😴",
+    "dream": "💭",
+    "hope": "🌟",
+    "faith": "🙏",
+    "trust": "🤝",
+    "peace": "🕊️"
+}
 
 # ================= 🔧 [ 1. CONFIGURATION ] =================
 
@@ -25,9 +472,9 @@ TYPE_NAMES = {
 }
 
 TYPE_ICONS = {
-    "ig_cookies": "📱",
-    "ig_2fa": "🔐",
-    "fb_0fd_2fa": "📘"
+    "ig_cookies": PREMIUM_EMOJIS.get("ig_cookies", "📱"),
+    "ig_2fa": PREMIUM_EMOJIS.get("ig_2fa", "🔐"),
+    "fb_0fd_2fa": PREMIUM_EMOJIS.get("fb_0fd_2fa", "📘")
 }
 # ========================================================
 
@@ -130,6 +577,8 @@ def auto_detect_columns(row):
     user_val = ""
     pass_val = ""
     twofa_val = ""
+    cookies_val = ""
+    uid_val = ""
     
     values = []
     for k, v in row.items():
@@ -137,12 +586,39 @@ def auto_detect_columns(row):
         if v_str and v_str != 'nan' and v_str != 'None':
             values.append(v_str)
     
+    # Facebook 0FD Cookies ডিটেক্ট করুন
+    for k, v in row.items():
+        k_lower = str(k).lower().strip()
+        v_str = str(v).strip()
+        
+        # UID ডিটেক্ট করুন
+        if k_lower in ['uid', 'user_id', 'id', 'userid']:
+            uid_val = v_str
+        # Cookies ডিটেক্ট করুন
+        elif k_lower in ['cookies', 'cookie', 'c_user', 'xs']:
+            cookies_val = v_str
+        # Password ডিটেক্ট করুন
+        elif k_lower in ['pass', 'password', 'pwd']:
+            pass_val = v_str
+        # Username/Email ডিটেক্ট করুন
+        elif k_lower in ['user', 'username', 'email', 'mail']:
+            user_val = v_str
+    
+    # যদি UID + Pass + Cookies পাওয়া যায়
+    if uid_val and cookies_val:
+        return uid_val, pass_val, cookies_val, "cookies_mode"
+    
+    # যদি UID + Pass পাওয়া যায় (cookies ছাড়া)
+    if uid_val and pass_val:
+        return uid_val, pass_val, "", "uid_mode"
+    
+    # যদি User + Pass + 2FA পাওয়া যায়
     if len(values) == 0:
-        return "", "", ""
+        return "", "", "", ""
     if len(values) == 1:
-        return values[0], "", ""
+        return values[0], "", "", ""
     if len(values) == 2:
-        return values[0], values[1], ""
+        return values[0], values[1], "", ""
     if len(values) >= 3:
         email_idx = -1
         for i, val in enumerate(values):
@@ -169,7 +645,7 @@ def auto_detect_columns(row):
             if len(values) >= 3:
                 twofa_val = values[2]
     
-    return user_val, pass_val, twofa_val
+    return user_val, pass_val, twofa_val, "normal_mode"
 
 def process_file_with_columns(file_path, original_filename, file_type):
     try:
@@ -178,44 +654,65 @@ def process_file_with_columns(file_path, original_filename, file_type):
         elif original_filename.endswith('.xlsx'):
             df = pd.read_excel(file_path)
         else:
-            return None, 0, None, 0
+            return None, 0, None, 0, 0
         
         if df is None or df.empty:
-            return None, 0, None, 0
+            return None, 0, None, 0, 0
         
         filtered_data = []
         empty_count = 0
         rows_with_2fa = 0
+        rows_with_cookies = 0
         
         for idx, row in df.iterrows():
             row_dict = row.to_dict()
-            user_val, pass_val, twofa_val = auto_detect_columns(row_dict)
+            user_val, pass_val, twofa_val, mode = auto_detect_columns(row_dict)
             
-            if twofa_val:
-                rows_with_2fa += 1
-            
-            filtered_data.append({
-                "user": user_val,
-                "pass": pass_val,
-                "2fa": twofa_val
-            })
+            # Cookies মোডে (Facebook 0FD)
+            if mode == "cookies_mode":
+                filtered_data.append({
+                    "user": user_val,      # UID
+                    "pass": pass_val,      # Password
+                    "2fa": twofa_val,      # Cookies
+                    "mode": "cookies"
+                })
+                rows_with_cookies += 1
+            # UID Mode
+            elif mode == "uid_mode":
+                filtered_data.append({
+                    "user": user_val,      # UID
+                    "pass": pass_val,      # Password
+                    "2fa": "",
+                    "mode": "uid"
+                })
+            else:
+                if twofa_val:
+                    rows_with_2fa += 1
+                filtered_data.append({
+                    "user": user_val,
+                    "pass": pass_val,
+                    "2fa": twofa_val,
+                    "mode": "normal"
+                })
         
         with open(file_path, "rb") as f:
             file_hash = hashlib.md5(f.read()).hexdigest()
         
         valid_rows = len([d for d in filtered_data if d['user'] or d['pass']])
         
-        return filtered_data, valid_rows, file_hash, empty_count
+        return filtered_data, valid_rows, file_hash, empty_count, rows_with_cookies
         
     except Exception as e:
         print(f"Process error: {e}")
-        return None, 0, None, 0
+        return None, 0, None, 0, 0
 
 def process_file_worker(bot, chat_id, file_type, file_path, original_name, payment_method, payment_number, username):
     try:
         db = load_db()
         
-        filtered_data, valid_rows, file_hash, empty_rows = process_file_with_columns(file_path, original_name, file_type)
+        filtered_data, valid_rows, file_hash, empty_rows, rows_with_cookies = process_file_with_columns(
+            file_path, original_name, file_type
+        )
         
         if filtered_data is None or not filtered_data or valid_rows == 0:
             os.remove(file_path)
@@ -284,7 +781,8 @@ def process_file_worker(bot, chat_id, file_type, file_path, original_name, payme
             "file_type": file_type,
             "total_rows_in_file": valid_rows,
             "empty_rows": empty_rows,
-            "received_date": current_date
+            "received_date": current_date,
+            "rows_with_cookies": rows_with_cookies
         }
         
         file_db[file_hash] = file_info
@@ -301,7 +799,8 @@ def process_file_worker(bot, chat_id, file_type, file_path, original_name, payme
             "payment_method": payment_method,
             "payment_number": payment_number,
             "total_rows": valid_rows,
-            "received_date": current_date
+            "received_date": current_date,
+            "rows_with_cookies": rows_with_cookies
         }
         
         save_db(db)
@@ -319,8 +818,12 @@ def process_file_worker(bot, chat_id, file_type, file_path, original_name, payme
             f"📅 Received: {current_date}\n"
             f"━━━━━━━━━━━━━━━━━━━━\n"
             f"📊 Valid rows: {valid_rows}\n"
-            f"✨ Status: Successfully received"
         )
+        
+        if rows_with_cookies > 0:
+            result_msg += f"🍪 Cookies rows: {rows_with_cookies}\n"
+        
+        result_msg += f"✨ Status: Successfully received"
         
         bot.send_message(chat_id, result_msg)
         
@@ -693,7 +1196,7 @@ def start_user_bot(token):
         if token in active_bots:
             active_bots.remove(token)
 
-# ================= 👑 [ 5. MASTER PANEL - FIXED ] =================
+# ================= 👑 [ 5. MASTER PANEL ] =================
 
 # Store only bot reply message IDs to delete (excluding main menu)
 bot_reply_messages = {}
@@ -839,7 +1342,7 @@ def m_back_to_menu_callback(c):
         bot_reply_messages[c.message.chat.id] = []
     bot_reply_messages[c.message.chat.id].append(msg.message_id)
 
-# ================= 📢 [ BROADCAST ] =================
+# ================= 📢 [ BROADCAST WITH PREMIUM EMOJI ] =================
 
 @master_bot.message_handler(func=lambda m: m.text == "📢 Broadcast")
 def m_broadcast(m):
@@ -903,6 +1406,8 @@ def goto_add_bot_from_broadcast(c):
     )
     master_bot.register_next_step_handler(msg, save_bot_token)
 
+# ================= 📝 [ BROADCAST WITH EMOJI KEYBOARD ] =================
+
 @master_bot.callback_query_handler(func=lambda c: c.data.startswith("broadcast_"))
 def broadcast_callback(c):
     if c.from_user.id not in ADMIN_IDS:
@@ -919,49 +1424,240 @@ def broadcast_callback(c):
         return
     
     if c.data == "broadcast_text":
+        # Premium Emoji Keyboard with Instagram & Facebook
+        kb = types.InlineKeyboardMarkup(row_width=4)
+        
+        # Social Media Emojis
+        social_emojis = [
+            ("📸", "📸"), ("📘", "📘"), ("🐦", "🐦"), ("▶️", "▶️"),
+            ("🎵", "🎵"), ("👻", "👻"), ("💼", "💼"), ("🤖", "🤖"),
+            ("✈️", "✈️"), ("💬", "💬"), ("📞", "📞"), ("🔒", "🔒"),
+        ]
+        
+        # Status Emojis
+        status_emojis = [
+            ("✅", "✅"), ("❌", "❌"), ("⚠️", "⚠️"), ("⭐", "⭐"),
+            ("🔥", "🔥"), ("🚀", "🚀"), ("🎁", "🎁"), ("👑", "👑"),
+            ("📢", "📢"), ("💬", "💬"), ("‼️", "‼️"), ("🛡️", "🛡️"),
+        ]
+        
+        # Payment Emojis
+        payment_emojis = [
+            ("🏦", "🏦"), ("🏧", "🏧"), ("💳", "💳"), ("₿", "₿"),
+            ("💰", "💰"), ("📱", "📱"), ("🛒", "🛒"), ("📦", "📦"),
+        ]
+        
+        all_emojis = social_emojis + status_emojis + payment_emojis
+        
+        for emoji_char, emoji_name in all_emojis:
+            kb.add(types.InlineKeyboardButton(
+                emoji_char, 
+                callback_data=f"broadcast_emoji_{emoji_char}"
+            ))
+        
+        kb.add(types.InlineKeyboardButton("📝 Send", callback_data="broadcast_send"))
+        kb.add(types.InlineKeyboardButton("🗑️ Clear", callback_data="broadcast_clear"))
+        kb.add(types.InlineKeyboardButton("❌ Cancel", callback_data="broadcast_cancel"))
+        
         msg = master_bot.send_message(
             c.message.chat.id,
-            "📝 Send your message\n\nSend /cancel to cancel:"
+            f"📝 **BROADCAST MESSAGE**\n\n"
+            f"📸 Instagram | 📘 Facebook | 🐦 Twitter\n"
+            f"Select emojis or type your message:\n"
+            f"Click emojis to add them to your message.\n"
+            f"Click 'Send' when ready.\n\n"
+            f"**Current Message:**\n"
+            f"_(Empty)_",
+            reply_markup=kb,
+            parse_mode="Markdown"
         )
-        master_bot.register_next_step_handler(msg, send_text_broadcast)
+        
+        user_sessions[c.message.chat.id] = {
+            "broadcast_mode": True,
+            "broadcast_message": "",
+            "broadcast_msg_id": msg.message_id
+        }
 
-def send_text_broadcast(m):
-    if m.from_user.id not in ADMIN_IDS:
+@master_bot.callback_query_handler(func=lambda c: c.data.startswith("broadcast_emoji_"))
+def broadcast_emoji_handler(c):
+    if c.from_user.id not in ADMIN_IDS:
+        master_bot.answer_callback_query(c.id, "❌ Unauthorized!")
         return
     
-    if m.text and m.text.startswith('/cancel'):
-        master_bot.send_message(m.chat.id, "❌ Broadcast cancelled.")
+    emoji = c.data.replace("broadcast_emoji_", "")
+    
+    if c.message.chat.id not in user_sessions:
         return
+    
+    session = user_sessions[c.message.chat.id]
+    if not session.get("broadcast_mode"):
+        return
+    
+    # Add emoji to message
+    session["broadcast_message"] += emoji
+    
+    # Update message preview
+    current_msg = session["broadcast_message"]
+    if not current_msg:
+        current_msg = "_(Empty)_"
+    
+    # Rebuild keyboard
+    kb = types.InlineKeyboardMarkup(row_width=4)
+    social_emojis = [
+        ("📸", "📸"), ("📘", "📘"), ("🐦", "🐦"), ("▶️", "▶️"),
+        ("🎵", "🎵"), ("👻", "👻"), ("💼", "💼"), ("🤖", "🤖"),
+        ("✈️", "✈️"), ("💬", "💬"), ("📞", "📞"), ("🔒", "🔒"),
+    ]
+    status_emojis = [
+        ("✅", "✅"), ("❌", "❌"), ("⚠️", "⚠️"), ("⭐", "⭐"),
+        ("🔥", "🔥"), ("🚀", "🚀"), ("🎁", "🎁"), ("👑", "👑"),
+        ("📢", "📢"), ("💬", "💬"), ("‼️", "‼️"), ("🛡️", "🛡️"),
+    ]
+    payment_emojis = [
+        ("🏦", "🏦"), ("🏧", "🏧"), ("💳", "💳"), ("₿", "₿"),
+        ("💰", "💰"), ("📱", "📱"), ("🛒", "🛒"), ("📦", "📦"),
+    ]
+    all_emojis = social_emojis + status_emojis + payment_emojis
+    
+    for emoji_char, emoji_name in all_emojis:
+        kb.add(types.InlineKeyboardButton(
+            emoji_char, 
+            callback_data=f"broadcast_emoji_{emoji_char}"
+        ))
+    
+    kb.add(types.InlineKeyboardButton("📝 Send", callback_data="broadcast_send"))
+    kb.add(types.InlineKeyboardButton("🗑️ Clear", callback_data="broadcast_clear"))
+    kb.add(types.InlineKeyboardButton("❌ Cancel", callback_data="broadcast_cancel"))
     
     try:
-        master_bot.delete_message(m.chat.id, m.message_id)
+        master_bot.edit_message_text(
+            f"📝 **BROADCAST MESSAGE**\n\n"
+            f"📸 Instagram | 📘 Facebook | 🐦 Twitter\n"
+            f"Select emojis or type your message:\n"
+            f"Click emojis to add them to your message.\n"
+            f"Click 'Send' when ready.\n\n"
+            f"**Current Message:**\n"
+            f"{current_msg}",
+            chat_id=c.message.chat.id,
+            message_id=session["broadcast_msg_id"],
+            reply_markup=kb,
+            parse_mode="Markdown"
+        )
     except:
         pass
     
-    user_message = m.text
-    
-    final_message = f"""‼️ ATTENTION ‼️
+    master_bot.answer_callback_query(c.id, f"Added {emoji}")
 
-{user_message}
-
-Thanks by MAX FUTURE ✅"""
+@master_bot.callback_query_handler(func=lambda c: c.data == "broadcast_clear")
+def broadcast_clear_handler(c):
+    if c.from_user.id not in ADMIN_IDS:
+        master_bot.answer_callback_query(c.id, "❌ Unauthorized!")
+        return
     
+    if c.message.chat.id not in user_sessions:
+        return
+    
+    session = user_sessions[c.message.chat.id]
+    if not session.get("broadcast_mode"):
+        return
+    
+    session["broadcast_message"] = ""
+    
+    # Rebuild keyboard
+    kb = types.InlineKeyboardMarkup(row_width=4)
+    social_emojis = [
+        ("📸", "📸"), ("📘", "📘"), ("🐦", "🐦"), ("▶️", "▶️"),
+        ("🎵", "🎵"), ("👻", "👻"), ("💼", "💼"), ("🤖", "🤖"),
+        ("✈️", "✈️"), ("💬", "💬"), ("📞", "📞"), ("🔒", "🔒"),
+    ]
+    status_emojis = [
+        ("✅", "✅"), ("❌", "❌"), ("⚠️", "⚠️"), ("⭐", "⭐"),
+        ("🔥", "🔥"), ("🚀", "🚀"), ("🎁", "🎁"), ("👑", "👑"),
+        ("📢", "📢"), ("💬", "💬"), ("‼️", "‼️"), ("🛡️", "🛡️"),
+    ]
+    payment_emojis = [
+        ("🏦", "🏦"), ("🏧", "🏧"), ("💳", "💳"), ("₿", "₿"),
+        ("💰", "💰"), ("📱", "📱"), ("🛒", "🛒"), ("📦", "📦"),
+    ]
+    all_emojis = social_emojis + status_emojis + payment_emojis
+    
+    for emoji_char, emoji_name in all_emojis:
+        kb.add(types.InlineKeyboardButton(
+            emoji_char, 
+            callback_data=f"broadcast_emoji_{emoji_char}"
+        ))
+    
+    kb.add(types.InlineKeyboardButton("📝 Send", callback_data="broadcast_send"))
+    kb.add(types.InlineKeyboardButton("❌ Cancel", callback_data="broadcast_cancel"))
+    
+    try:
+        master_bot.edit_message_text(
+            f"📝 **BROADCAST MESSAGE**\n\n"
+            f"📸 Instagram | 📘 Facebook | 🐦 Twitter\n"
+            f"Select emojis or type your message:\n"
+            f"Click emojis to add them to your message.\n"
+            f"Click 'Send' when ready.\n\n"
+            f"**Current Message:**\n"
+            f"_(Empty)_",
+            chat_id=c.message.chat.id,
+            message_id=session["broadcast_msg_id"],
+            reply_markup=kb,
+            parse_mode="Markdown"
+        )
+    except:
+        pass
+    
+    master_bot.answer_callback_query(c.id, "✅ Cleared!")
+
+@master_bot.callback_query_handler(func=lambda c: c.data == "broadcast_send")
+def broadcast_send_handler(c):
+    if c.from_user.id not in ADMIN_IDS:
+        master_bot.answer_callback_query(c.id, "❌ Unauthorized!")
+        return
+    
+    if c.message.chat.id not in user_sessions:
+        return
+    
+    session = user_sessions[c.message.chat.id]
+    if not session.get("broadcast_mode"):
+        return
+    
+    broadcast_message = session.get("broadcast_message", "")
+    
+    if not broadcast_message:
+        master_bot.answer_callback_query(c.id, "❌ Message is empty!", show_alert=True)
+        return
+    
+    try:
+        master_bot.delete_message(c.message.chat.id, c.message.message_id)
+    except:
+        pass
+    
+    # Clean up session
+    user_sessions.pop(c.message.chat.id, None)
+    
+    # Send broadcast
     user_ids = load_user_ids()
     
     if not user_ids:
-        master_bot.send_message(m.chat.id, "❌ No users found!")
+        master_bot.send_message(c.message.chat.id, "❌ No users found!")
         return
     
     if not active_bots:
-        master_bot.send_message(m.chat.id, "❌ No active user bots!")
+        master_bot.send_message(c.message.chat.id, "❌ No active user bots!")
         return
     
+    final_message = f"""‼️ ATTENTION ‼️
+
+{broadcast_message}
+
+Thanks by MAX FUTURE ✅"""
+    
     total_users = len(user_ids)
-    status_msg = master_bot.send_message(m.chat.id, f"⏳ Sending to {total_users} users...")
+    status_msg = master_bot.send_message(c.message.chat.id, f"⏳ Sending to {total_users} users...")
     
     success = 0
     fail = 0
-    failed_users = []
     bot_tokens = list(active_bots)
     
     for idx, user_id in enumerate(user_ids):
@@ -978,7 +1674,6 @@ Thanks by MAX FUTURE ✅"""
         
         if not sent:
             fail += 1
-            failed_users.append(user_id)
         
         if (idx + 1) % 50 == 0 or (idx + 1) == total_users:
             try:
@@ -993,7 +1688,7 @@ Thanks by MAX FUTURE ✅"""
         time.sleep(0.03)
     
     try:
-        master_bot.delete_message(m.chat.id, status_msg.message_id)
+        master_bot.delete_message(c.message.chat.id, status_msg.message_id)
     except:
         pass
     
@@ -1002,7 +1697,22 @@ Thanks by MAX FUTURE ✅"""
     if fail > 0:
         result_msg += f"\n\n⚠️ {fail} users didn't receive the message."
     
-    master_bot.send_message(m.chat.id, result_msg)
+    master_bot.send_message(c.message.chat.id, result_msg)
+
+@master_bot.callback_query_handler(func=lambda c: c.data == "broadcast_cancel")
+def broadcast_cancel_handler(c):
+    if c.from_user.id not in ADMIN_IDS:
+        master_bot.answer_callback_query(c.id, "❌ Unauthorized!")
+        return
+    
+    user_sessions.pop(c.message.chat.id, None)
+    
+    try:
+        master_bot.delete_message(c.message.chat.id, c.message.message_id)
+    except:
+        pass
+    
+    master_bot.send_message(c.message.chat.id, "❌ Broadcast cancelled.")
 
 # ================= 📋 [ REPORT CHECK - UNIQUE OK ] =================
 
@@ -2065,7 +2775,41 @@ def m_reset_types(m):
         bot_reply_messages[m.chat.id] = []
     bot_reply_messages[m.chat.id].append(msg.message_id)
 
-# ================= 🔄 [ MAIN ] =================
+# ================= 🔄 [ MAIN FUNCTION ] =================
+
+def main():
+    """Main entry point for the bot"""
+    print("=" * 50)
+    print("👑 ID RECEIVER SYSTEM v30.0")
+    print("🎛️ UNIQUE OK COUNT")
+    print("🎛️ EACH FILE SEPARATE IN PAYMENT LIST")
+    print("🎛️ DATE FORMAT: DD-MM-YYYY")
+    print("🎛️ PAYMENT METHOD ORDER: bKash → Nagad → Rocket → Binance")
+    print("🎛️ MAIN MENU KEEPS")
+    print("🎛️ USER MESSAGES KEPT")
+    print("🎛️ ONLY BOT REPLIES DELETED")
+    print("🎛️ PREMIUM EMOJI SUPPORT")
+    print("🎛️ FACEBOOK 0FD COOKIES SUPPORT")
+    print("=" * 50)
+    
+    if not MASTER_ADMIN_TOKEN:
+        print("❌ ERROR: MASTER_ADMIN_TOKEN not found in environment variables!")
+        print("📌 Please set MASTER_ADMIN_TOKEN in Railway Variables")
+        return
+    
+    load_db()
+    run_all_bots()
+    
+    print(f"✅ Master Bot Online!")
+    print(f"📌 Send /start to access admin panel")
+    print("=" * 50)
+    
+    while True:
+        try:
+            master_bot.infinity_polling(timeout=60, skip_pending=True)
+        except Exception as e:
+            print(f"❌ Error: {e}")
+            time.sleep(5)
 
 def run_all_bots():
     db = load_db()
@@ -2076,32 +2820,7 @@ def run_all_bots():
             threading.Thread(target=start_user_bot, args=(token,), daemon=True).start()
             time.sleep(2)
 
+# ================= 🔄 [ ORIGINAL MAIN ] =================
+
 if __name__ == "__main__":
-    print("=" * 50)
-    print("👑 ID RECEIVER SYSTEM v30.0")
-    print("🎛️ UNIQUE OK COUNT")
-    print("🎛️ EACH FILE SEPARATE IN PAYMENT LIST")
-    print("🎛️ DATE FORMAT: DD-MM-YYYY")
-    print("🎛️ PAYMENT METHOD ORDER: bKash → Nagad → Rocket → Binance")
-    print("🎛️ MAIN MENU KEEPS")
-    print("🎛️ USER MESSAGES KEPT")
-    print("🎛️ ONLY BOT REPLIES DELETED")
-    print("=" * 50)
-    
-    if not MASTER_ADMIN_TOKEN:
-        print("❌ ERROR: MASTER_ADMIN_TOKEN not found in environment variables!")
-        print("📌 Please set MASTER_ADMIN_TOKEN in Railway Variables")
-    else:
-        load_db()
-        run_all_bots()
-        
-        print(f"✅ Master Bot Online!")
-        print(f"📌 Send /start to access admin panel")
-        print("=" * 50)
-        
-        while True:
-            try:
-                master_bot.infinity_polling(timeout=60, skip_pending=True)
-            except Exception as e:
-                print(f"❌ Error: {e}")
-                time.sleep(5)
+    main()
