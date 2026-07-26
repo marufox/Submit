@@ -9,107 +9,14 @@ import pandas as pd
 from telebot import types
 from datetime import datetime
 
-# ================= 💎 [ PREMIUM EMOJIS - UPDATED ] =================
+# ================= 🔧 [ 1. CONFIGURATION ] =================
 
-PEM = {
-    # 📱 Social Media - Premium
-    "facebook": "📘",
-    "fb": "📘",
-    "fb_0fd_2fa": "📘",
-    "fb_cookies": "🍪",
-    "whatsapp": "💬",
-    "wa": "💬",
-    "telegram": "✈️",
-    "tg": "✈️",
-    "whatsapp_business": "💼",
-    "wab": "💼",
-    "imo": "💭",
-    "instagram": "📸",
-    "ig": "📸",
-    "ig_cookies": "📱",
-    "ig_2fa": "🔐",
-    "apple": "🍎",
-    "google": "🔍",
-    "microsoft": "🪟",
-    "teams": "🧑‍🤝‍🧑",
-    "tiktok": "🎵",
-    
-    # 💰 Payment
-    "bkash": "🏦",
-    "nagad": "🏧",
-    "rocket": "🚀",
-    "binance": "💱",
-    "bybit": "📈",
-    "paypal": "💰",
-    "stripe": "💳",
-    
-    # 🔧 General
-    "ok": "✅",
-    "no": "❌",
-    "warn": "⚠️",
-    "admin": "👑",
-    "user": "👤",
-    "file": "📁",
-    "graph": "📊",
-    "money": "💰",
-    "gift": "🎁",
-    "msg": "💬",
-    "gear": "⚙️",
-    "link": "🔗",
-    "trash": "🗑️",
-    "upload": "📤",
-    "world": "🌐",
-    "lock": "🔐",
-    "phone": "📱",
-    "num": "🔢",
-    "pin": "📍",
-    "star": "✨",
-    "hi": "👋",
-    "cookies": "🍪",
-    "uid": "🆔",
-    "success": "✅",
-    "error": "❌",
-    "warning": "⚠️",
-    "payment": "💳",
-    "stats": "📊",
-    "bot": "🤖",
-    "master": "👑",
-    "time": "⏰",
-    "date": "📅",
-    "download": "📥",
-    "settings": "⚙️",
-    "search": "🔍",
-    "refresh": "🔄",
-    "add": "➕",
-    "remove": "➖",
-    "back": "🔙",
-    "info": "ℹ️",
-    "check": "✔️",
-    "broadcast": "📢",
-    "message": "💬",
-    "attention": "‼️",
-    "fire": "🔥",
-    "crown": "👑",
-    "shield": "🛡️",
-    "online": "🟢",
-    "offline": "🔴",
-    "pending": "🟡",
-    "approved": "✅",
-    "rejected": "❌",
-    "processing": "⏳",
-    "completed": "✅",
-    "cancelled": "❌",
-    "paused": "⏸️",
-    "stopped": "⏹️",
-    "running": "▶️",
-    "waiting": "⏳",
-    "error": "❌",
-    "success": "✅",
-    "failed": "❌"
-}
+# Environment Variables
+MASTER_ADMIN_TOKEN = os.environ.get("MASTER_ADMIN_TOKEN")
+ADMIN_IDS_STR = os.environ.get("ADMIN_IDS", "6293094676")
+ADMIN_IDS = [int(x.strip()) for x in ADMIN_IDS_STR.split(",")]
 
-# ================= 🔧 [ TYPE NAMES & ICONS - UPDATED ] =================
-
+# ========================================================
 TYPE_NAMES = {
     "ig_cookies": "Instagram Cookies",
     "ig_2fa": "Instagram 2FA",
@@ -117,17 +24,11 @@ TYPE_NAMES = {
 }
 
 TYPE_ICONS = {
-    "ig_cookies": PEM.get("ig_cookies", "📱"),
-    "ig_2fa": PEM.get("ig_2fa", "🔐"),
-    "fb_0fd_2fa": PEM.get("fb_0fd_2fa", "📘")
+    "ig_cookies": "📱",
+    "ig_2fa": "🔐",
+    "fb_0fd_2fa": "📘"
 }
-
-# ================= 🔧 [ CONFIGURATION ] =================
-
-# Environment Variables
-MASTER_ADMIN_TOKEN = os.environ.get("MASTER_ADMIN_TOKEN")
-ADMIN_IDS_STR = os.environ.get("ADMIN_IDS", "6293094676")
-ADMIN_IDS = [int(x.strip()) for x in ADMIN_IDS_STR.split(",")]
+# ========================================================
 
 master_bot = telebot.TeleBot(MASTER_ADMIN_TOKEN)
 DB_FILE = "id_receiver_data.json"
@@ -184,7 +85,7 @@ os.makedirs("duplicate_files", exist_ok=True)
 os.makedirs("backup", exist_ok=True)
 os.makedirs("reports", exist_ok=True)
 
-# ================= 📁 [ DATABASE ] =================
+# ================= 📁 [ 2. DATABASE ] =================
 
 def load_db():
     with db_lock:
@@ -222,37 +123,47 @@ def save_db(data):
             json.dump(data, f, indent=4)
         os.replace(temp_file, DB_FILE)
 
-# ================= 🔐 [ FILE PROCESSING - FACEBOOK 0FD COOKIES SUPPORT ] =================
+# ================= 🔐 [ 3. FILE PROCESSING - FACEBOOK FIXED ] =================
 
 def auto_detect_columns(row):
     user_val = ""
     pass_val = ""
+    twofa_val = ""
     cookies_val = ""
     uid_val = ""
     
+    # প্রথমে সব কলামের নাম লোয়ার কেসে কনভার্ট করুন
     row_lower = {str(k).lower().strip(): v for k, v in row.items()}
     
+    # Facebook 0FD Cookies ডিটেক্ট করুন
     for k, v in row_lower.items():
         v_str = str(v).strip()
         if v_str and v_str != 'nan' and v_str != 'None':
+            # UID ডিটেক্ট করুন
             if k in ['uid', 'user_id', 'id', 'userid']:
                 uid_val = v_str
+            # Cookies ডিটেক্ট করুন (সম্পূর্ণ কুকি স্ট্রিং)
             elif k in ['cookies', 'cookie', 'c_user', 'xs', 'datr', 'sb', 'dpr', 'wd', 'm_pixel_ratio', 'ps_l', 'ps_n', 'fr']:
                 if not cookies_val:
                     cookies_val = v_str
                 else:
                     cookies_val += "; " + v_str
+            # Password ডিটেক্ট করুন
             elif k in ['pass', 'password', 'pwd']:
                 pass_val = v_str
+            # Username/Email ডিটেক্ট করুন
             elif k in ['user', 'username', 'email', 'mail']:
                 user_val = v_str
     
+    # 🔥 Cookies মোড: uid + cookies (pass optional)
     if uid_val and cookies_val:
         return uid_val, pass_val, cookies_val, "cookies_mode"
     
+    # যদি UID + Pass পাওয়া যায় (cookies ছাড়া)
     if uid_val and pass_val:
         return uid_val, pass_val, "", "uid_mode"
     
+    # সাধারণ ডিটেকশন (Instagram ইত্যাদির জন্য)
     values = [str(v).strip() for v in row.values() if str(v).strip() and str(v).strip() != 'nan' and str(v).strip() != 'None']
     
     if len(values) == 0:
@@ -309,15 +220,17 @@ def process_file_with_columns(file_path, original_filename, file_type):
             row_dict = row.to_dict()
             user_val, pass_val, cookies_val, mode = auto_detect_columns(row_dict)
             
+            # 🔥 Facebook 0FD Cookies Mode - এইখানে ঠিক করা হয়েছে
             if mode == "cookies_mode":
                 filtered_data.append({
-                    "user": user_val,
-                    "pass": pass_val,
-                    "cookies": cookies_val,
-                    "2fa": "",
+                    "user": user_val,      # UID
+                    "pass": pass_val,      # Password (optional)
+                    "cookies": cookies_val, # 🔥 সম্পূর্ণ Cookies
+                    "2fa": "",             # ❌ 2FA নেই (Facebook এর জন্য)
                     "mode": "cookies"
                 })
                 rows_with_cookies += 1
+            # UID Mode
             elif mode == "uid_mode":
                 filtered_data.append({
                     "user": user_val,
@@ -327,11 +240,12 @@ def process_file_with_columns(file_path, original_filename, file_type):
                     "mode": "uid"
                 })
             else:
+                # 🔥 যদি cookies ডিটেক্ট হয় (2fa হিসেবে)
                 if cookies_val and (';' in cookies_val or '=' in cookies_val):
                     filtered_data.append({
                         "user": user_val,
                         "pass": pass_val,
-                        "cookies": cookies_val,
+                        "cookies": cookies_val,  # 🔥 Cookies হিসেবে সেভ
                         "2fa": "",
                         "mode": "cookies"
                     })
@@ -368,7 +282,7 @@ def process_file_worker(bot, chat_id, file_type, file_path, original_name, payme
             os.remove(file_path)
             bot.send_message(
                 chat_id, 
-                f"{PEM['no']} NO DATA FOUND!\n\nYour file was empty or had no readable data."
+                "❌ NO DATA FOUND!\n\nYour file was empty or had no readable data."
             )
             return False
         
@@ -376,7 +290,7 @@ def process_file_worker(bot, chat_id, file_type, file_path, original_name, payme
         
         if file_hash in file_db:
             with open(file_path, "rb") as dup_file:
-                bot.send_document(chat_id, dup_file, caption=f"{PEM['warn']} DUPLICATE FILE!")
+                bot.send_document(chat_id, dup_file, caption=f"⚠️ DUPLICATE FILE!")
             os.remove(file_path)
             return False
         
@@ -414,7 +328,7 @@ def process_file_worker(bot, chat_id, file_type, file_path, original_name, payme
             os.remove(file_path)
             bot.send_message(
                 chat_id,
-                f"{PEM['no']} NO UNIQUE DATA!\n\nAll rows already exist in database."
+                "❌ NO UNIQUE DATA!\n\nAll rows already exist in database."
             )
             return False
         
@@ -460,40 +374,33 @@ def process_file_worker(bot, chat_id, file_type, file_path, original_name, payme
         with open(file_path, "rb") as src, open(backup_path, "wb") as dst:
             dst.write(src.read())
         
-        result_msg = f"""{PEM['ok']} <b>FILE PROCESSED SUCCESSFULLY</b> {PEM['ok']}
-
-{PEM['file']} <b>File:</b> {original_name}
-{get_type_icon(file_type)} <b>Type:</b> {get_type_display_name(file_type)}
-{PEM['payment']} <b>Payment:</b> {payment_method} - {payment_number}
-{PEM['date']} <b>Received:</b> {current_date}
-
-━━━━━━━━━━━━━━━━━━━━
-{PEM['stats']} <b>Valid rows:</b> {valid_rows}
-"""
+        result_msg = (
+            f"✅ FILE PROCESSED SUCCESSFULLY!\n\n"
+            f"📁 File: {original_name}\n"
+            f"📂 Type: {get_type_display_name(file_type)}\n"
+            f"💳 Payment: {payment_method} - {payment_number}\n"
+            f"📅 Received: {current_date}\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"📊 Valid rows: {valid_rows}\n"
+        )
         
         if rows_with_cookies > 0:
-            result_msg += f"{PEM['cookies']} <b>Cookies rows:</b> {rows_with_cookies}\n"
+            result_msg += f"🍪 Cookies rows: {rows_with_cookies}\n"
         
-        result_msg += f"""
-{PEM['star']} <b>Status:</b> Successfully received
-
-━━━━━━━━━━━━━━━━━━━━
-{PEM['shield']} <b>Secure • Fast • Reliable</b>"""
+        result_msg += f"✨ Status: Successfully received"
         
-        bot.send_message(chat_id, result_msg, parse_mode="HTML")
+        bot.send_message(chat_id, result_msg)
         
         for admin_id in ADMIN_IDS:
             try:
                 master_bot.send_message(
                     admin_id, 
-                    f"""{PEM['broadcast']} <b>NEW FILE RECEIVED!</b>
-
-{PEM['user']} <b>User:</b> {username}
-{get_type_icon(file_type)} <b>Type:</b> {get_type_display_name(file_type)}
-{PEM['stats']} <b>Rows:</b> {valid_rows}
-{PEM['payment']} <b>Payment:</b> {payment_method} - {payment_number}
-{PEM['date']} <b>Date:</b> {current_date}""",
-                    parse_mode="HTML"
+                    f"📢 NEW FILE RECEIVED!\n"
+                    f"👤 {username}\n"
+                    f"📂 {get_type_display_name(file_type)}\n"
+                    f"📊 {valid_rows} unique rows\n"
+                    f"💳 {payment_method} - {payment_number}\n"
+                    f"📅 {current_date}"
                 )
             except:
                 pass
@@ -501,7 +408,7 @@ def process_file_worker(bot, chat_id, file_type, file_path, original_name, payme
         return True
         
     except Exception as e:
-        bot.send_message(chat_id, f"{PEM['no']} ERROR!\n\n{str(e)}")
+        bot.send_message(chat_id, f"❌ ERROR!\n\n{str(e)}")
         return False
 
 def get_type_keyboard():
@@ -509,42 +416,42 @@ def get_type_keyboard():
     
     if type_status["ig_cookies"]:
         kb.add(types.InlineKeyboardButton(
-            f"{get_type_icon('ig_cookies')} {get_type_display_name('ig_cookies')}", 
+            f"📱 {get_type_display_name('ig_cookies')}", 
             callback_data="type_ig_cookies"
         ))
     else:
         kb.add(types.InlineKeyboardButton(
-            f"{PEM['offline']} {get_type_display_name('ig_cookies')} (Closed)", 
+            f"🔴 {get_type_display_name('ig_cookies')} (Closed)", 
             callback_data="type_disabled_ig_cookies"
         ))
     
     if type_status["ig_2fa"]:
         kb.add(types.InlineKeyboardButton(
-            f"{get_type_icon('ig_2fa')} {get_type_display_name('ig_2fa')}", 
+            f"🔐 {get_type_display_name('ig_2fa')}", 
             callback_data="type_ig_2fa"
         ))
     else:
         kb.add(types.InlineKeyboardButton(
-            f"{PEM['offline']} {get_type_display_name('ig_2fa')} (Closed)", 
+            f"🔴 {get_type_display_name('ig_2fa')} (Closed)", 
             callback_data="type_disabled_ig_2fa"
         ))
     
     if type_status["fb_0fd_2fa"]:
         kb.add(types.InlineKeyboardButton(
-            f"{get_type_icon('fb_0fd_2fa')} {get_type_display_name('fb_0fd_2fa')}", 
+            f"📘 {get_type_display_name('fb_0fd_2fa')}", 
             callback_data="type_fb_0fd_2fa"
         ))
     else:
         kb.add(types.InlineKeyboardButton(
-            f"{PEM['offline']} {get_type_display_name('fb_0fd_2fa')} (Closed)", 
+            f"🔴 {get_type_display_name('fb_0fd_2fa')} (Closed)", 
             callback_data="type_disabled_fb_0fd_2fa"
         ))
     
-    kb.add(types.InlineKeyboardButton(f"{PEM['no']} Cancel", callback_data="cancel_submit"))
+    kb.add(types.InlineKeyboardButton("❌ Cancel", callback_data="cancel_submit"))
     
     return kb
 
-# ================= 🤖 [ USER BOT ] =================
+# ================= 🤖 [ 4. USER BOT ] =================
 
 def start_user_bot(token):
     if token in active_bots:
@@ -559,8 +466,8 @@ def start_user_bot(token):
             save_user_id(m.chat.id)
             
             kb = types.InlineKeyboardMarkup(row_width=1)
-            btn1 = types.InlineKeyboardButton(f"{PEM['file']} Submit File", callback_data="submit_file")
-            btn2 = types.InlineKeyboardButton(f"{PEM['payment']} Change Payment", callback_data="change_payment")
+            btn1 = types.InlineKeyboardButton("📁 Submit File", callback_data="submit_file")
+            btn2 = types.InlineKeyboardButton("💳 Change Payment", callback_data="change_payment")
             kb.add(btn1, btn2)
             
             db = load_db()
@@ -568,25 +475,18 @@ def start_user_bot(token):
             
             payment_info = ""
             if user_payment:
-                payment_info = f"\n\n{PEM['payment']} Current Payment:\n{user_payment.get('payment_method', 'N/A')} - {user_payment.get('payment_number', 'N/A')}"
+                payment_info = f"\n\n💳 Current Payment:\n{user_payment.get('payment_method', 'N/A')} - {user_payment.get('payment_number', 'N/A')}"
             
             bot.send_message(
                 m.chat.id,
-                f"""{PEM['star']} <b>ID RECEIVER BOT</b> {PEM['star']}
-
-{PEM['hi']} <b>Hello</b> {m.from_user.first_name}!{payment_info}
-
-{PEM['file']} <b>Supported:</b> Any file format
-{PEM['info']} <b>Auto Detect:</b> Columns automatically
-{PEM['payment']} <b>Payment:</b> bKash, Nagad, Rocket, Binance
-{PEM['refresh']} <b>Duplicate:</b> Auto remove
-
-━━━━━━━━━━━━━━━━━━━━
-{PEM['pin']} <b>Click below to start</b>
-
-{PEM['shield']} <b>Secure • Fast • Reliable</b>""",
-                reply_markup=kb,
-                parse_mode="HTML"
+                f"✨ ID RECEIVER BOT ✨\n\n"
+                f"👋 Hello {m.from_user.first_name}!{payment_info}\n\n"
+                f"📂 Supported: Any file format\n"
+                f"📌 No specific columns needed!\n"
+                f"💳 Payment: bKash, Nagad, Rocket, Binance\n"
+                f"🔄 Auto duplicate remove\n\n"
+                f"📌 Click below to start",
+                reply_markup=kb
             )
 
         @bot.callback_query_handler(func=lambda c: True)
@@ -600,16 +500,16 @@ def start_user_bot(token):
                     pass
                 
                 kb = types.InlineKeyboardMarkup(row_width=2)
-                btn1 = types.InlineKeyboardButton(f"{PEM['bkash']} bKash", callback_data="change_pay_bkash")
-                btn2 = types.InlineKeyboardButton(f"{PEM['nagad']} Nagad", callback_data="change_pay_nagad")
-                btn3 = types.InlineKeyboardButton(f"{PEM['rocket']} Rocket", callback_data="change_pay_rocket")
-                btn4 = types.InlineKeyboardButton(f"{PEM['binance']} Binance", callback_data="change_pay_binance")
-                btn5 = types.InlineKeyboardButton(f"{PEM['no']} Cancel", callback_data="cancel_payment_change")
+                btn1 = types.InlineKeyboardButton("🏦 bKash", callback_data="change_pay_bkash")
+                btn2 = types.InlineKeyboardButton("🏧 Nagad", callback_data="change_pay_nagad")
+                btn3 = types.InlineKeyboardButton("💳 Rocket", callback_data="change_pay_rocket")
+                btn4 = types.InlineKeyboardButton("₿ Binance", callback_data="change_pay_binance")
+                btn5 = types.InlineKeyboardButton("❌ Cancel", callback_data="cancel_payment_change")
                 kb.add(btn1, btn2, btn3, btn4, btn5)
                 
                 bot.send_message(
                     user_id,
-                    f"{PEM['payment']} Change Payment Method\n\nSelect your new payment method:",
+                    "💰 Change Payment Method\n\nSelect your new payment method:",
                     reply_markup=kb
                 )
             
@@ -630,7 +530,7 @@ def start_user_bot(token):
                 
                 bot.send_message(
                     user_id,
-                    f"{PEM['ok']} {method_name} Selected\n\n{PEM['upload']} Send your new {method_name} number:"
+                    f"✅ {method_name} Selected\n\n📝 Send your new {method_name} number:"
                 )
                 bot.register_next_step_handler_by_chat_id(user_id, update_payment_number)
             
@@ -641,13 +541,13 @@ def start_user_bot(token):
                     pass
                 
                 kb = types.InlineKeyboardMarkup(row_width=1)
-                btn1 = types.InlineKeyboardButton(f"{PEM['file']} Submit File", callback_data="submit_file")
-                btn2 = types.InlineKeyboardButton(f"{PEM['payment']} Change Payment", callback_data="change_payment")
+                btn1 = types.InlineKeyboardButton("📁 Submit File", callback_data="submit_file")
+                btn2 = types.InlineKeyboardButton("💳 Change Payment", callback_data="change_payment")
                 kb.add(btn1, btn2)
                 
                 bot.send_message(
                     user_id,
-                    f"{PEM['no']} Payment change cancelled",
+                    "❌ Payment change cancelled",
                     reply_markup=kb
                 )
             
@@ -659,18 +559,18 @@ def start_user_bot(token):
                 
                 bot.send_message(
                     c.message.chat.id,
-                    f"{PEM['file']} Select File Type:",
+                    "📂 Select File Type:",
                     reply_markup=get_type_keyboard()
                 )
             
             elif c.data.startswith("type_disabled_"):
-                bot.answer_callback_query(c.id, f"{PEM['no']} This type is currently closed!", show_alert=True)
+                bot.answer_callback_query(c.id, "❌ This type is currently closed!", show_alert=True)
             
             elif c.data.startswith("type_"):
                 file_type = c.data.replace("type_", "")
                 
                 if not type_status.get(file_type, False):
-                    bot.answer_callback_query(c.id, f"{PEM['no']} This type is currently closed!", show_alert=True)
+                    bot.answer_callback_query(c.id, "❌ This type is currently closed!", show_alert=True)
                     return
                 
                 db = load_db()
@@ -690,20 +590,20 @@ def start_user_bot(token):
                     
                     bot.send_message(
                         user_id,
-                        f"{PEM['ok']} Auto Payment Selected\n\n"
-                        f"{PEM['payment']} {user_payment['payment_method']} - {user_payment['payment_number']}\n\n"
-                        f"{PEM['file']} Send your file now"
+                        f"✅ Auto Payment Selected\n\n"
+                        f"💳 {user_payment['payment_method']} - {user_payment['payment_number']}\n\n"
+                        f"📎 Send your file now"
                     )
                     bot.register_next_step_handler_by_chat_id(user_id, receive_file)
                 else:
                     user_sessions[user_id] = {"file_type": file_type}
                     
                     kb = types.InlineKeyboardMarkup(row_width=2)
-                    btn1 = types.InlineKeyboardButton(f"{PEM['bkash']} bKash", callback_data="pay_bkash")
-                    btn2 = types.InlineKeyboardButton(f"{PEM['nagad']} Nagad", callback_data="pay_nagad")
-                    btn3 = types.InlineKeyboardButton(f"{PEM['rocket']} Rocket", callback_data="pay_rocket")
-                    btn4 = types.InlineKeyboardButton(f"{PEM['binance']} Binance", callback_data="pay_binance")
-                    btn5 = types.InlineKeyboardButton(f"{PEM['no']} Cancel", callback_data="cancel_submit")
+                    btn1 = types.InlineKeyboardButton("🏦 bKash", callback_data="pay_bkash")
+                    btn2 = types.InlineKeyboardButton("🏧 Nagad", callback_data="pay_nagad")
+                    btn3 = types.InlineKeyboardButton("💳 Rocket", callback_data="pay_rocket")
+                    btn4 = types.InlineKeyboardButton("₿ Binance", callback_data="pay_binance")
+                    btn5 = types.InlineKeyboardButton("❌ Cancel", callback_data="cancel_submit")
                     kb.add(btn1, btn2, btn3, btn4, btn5)
                     
                     try:
@@ -713,7 +613,7 @@ def start_user_bot(token):
                     
                     bot.send_message(
                         c.message.chat.id,
-                        f"{PEM['payment']} Select Payment Method:",
+                        "💰 Select Payment Method:",
                         reply_markup=kb
                     )
             
@@ -734,7 +634,7 @@ def start_user_bot(token):
                 
                 bot.send_message(
                     user_id,
-                    f"{PEM['ok']} {method_name} Selected\n\n{PEM['upload']} Send your {method_name} number (you won't need to enter this again):"
+                    f"✅ {method_name} Selected\n\n📝 Send your {method_name} number (you won't need to enter this again):"
                 )
                 bot.register_next_step_handler_by_chat_id(user_id, save_payment_and_continue)
             
@@ -742,8 +642,8 @@ def start_user_bot(token):
                 user_sessions.pop(user_id, None)
                 
                 kb = types.InlineKeyboardMarkup(row_width=1)
-                btn1 = types.InlineKeyboardButton(f"{PEM['file']} Submit File", callback_data="submit_file")
-                btn2 = types.InlineKeyboardButton(f"{PEM['payment']} Change Payment", callback_data="change_payment")
+                btn1 = types.InlineKeyboardButton("📁 Submit File", callback_data="submit_file")
+                btn2 = types.InlineKeyboardButton("💳 Change Payment", callback_data="change_payment")
                 kb.add(btn1, btn2)
                 
                 try:
@@ -753,7 +653,7 @@ def start_user_bot(token):
                 
                 bot.send_message(
                     c.message.chat.id,
-                    f"{PEM['no']} Cancelled\n\nClick below to start over:",
+                    "❌ Cancelled\n\nClick below to start over:",
                     reply_markup=kb
                 )
 
@@ -761,7 +661,7 @@ def start_user_bot(token):
             user_id = m.chat.id
             
             if user_id not in user_sessions or not user_sessions[user_id].get("changing_payment"):
-                bot.send_message(user_id, f"{PEM['no']} Session expired. Use /start")
+                bot.send_message(user_id, "❌ Session expired. Use /start")
                 return
             
             new_number = m.text.strip()
@@ -777,14 +677,14 @@ def start_user_bot(token):
             user_sessions.pop(user_id, None)
             
             kb = types.InlineKeyboardMarkup(row_width=1)
-            btn1 = types.InlineKeyboardButton(f"{PEM['file']} Submit File", callback_data="submit_file")
-            btn2 = types.InlineKeyboardButton(f"{PEM['payment']} Change Payment", callback_data="change_payment")
+            btn1 = types.InlineKeyboardButton("📁 Submit File", callback_data="submit_file")
+            btn2 = types.InlineKeyboardButton("💳 Change Payment", callback_data="change_payment")
             kb.add(btn1, btn2)
             
             bot.send_message(
                 user_id,
-                f"{PEM['ok']} Payment Updated!\n\n"
-                f"{PEM['payment']} {new_method} - {new_number}\n\n"
+                f"✅ Payment Updated!\n\n"
+                f"💳 {new_method} - {new_number}\n\n"
                 f"Your payment method has been saved.",
                 reply_markup=kb
             )
@@ -793,7 +693,7 @@ def start_user_bot(token):
             user_id = m.chat.id
             
             if user_id not in user_sessions:
-                bot.send_message(user_id, f"{PEM['no']} Session expired. Use /start")
+                bot.send_message(user_id, "❌ Session expired. Use /start")
                 return
             
             payment_number = m.text.strip()
@@ -808,10 +708,10 @@ def start_user_bot(token):
             
             bot.send_message(
                 user_id,
-                f"{PEM['ok']} Payment saved!\n\n"
-                f"{PEM['payment']} {user_sessions[user_id]['payment_method']} - {payment_number}\n"
-                f"{PEM['refresh']} You won't need to enter this again.\n\n"
-                f"{PEM['file']} Send your file now"
+                f"✅ Payment saved!\n\n"
+                f"💳 {user_sessions[user_id]['payment_method']} - {payment_number}\n"
+                f"🔄 You won't need to enter this again.\n\n"
+                f"📎 Send your file now"
             )
             bot.register_next_step_handler_by_chat_id(user_id, receive_file)
 
@@ -819,11 +719,11 @@ def start_user_bot(token):
             user_id = m.chat.id
             
             if user_id not in user_sessions:
-                bot.send_message(user_id, f"{PEM['no']} Session expired. Use /start")
+                bot.send_message(user_id, "❌ Session expired. Use /start")
                 return
             
             if not m.document:
-                bot.send_message(user_id, f"{PEM['no']} Send a valid file!")
+                bot.send_message(user_id, "❌ Send a valid file!")
                 return
             
             file_type = user_sessions[user_id]["file_type"]
@@ -837,7 +737,7 @@ def start_user_bot(token):
             with open(save_path, "wb") as f:
                 f.write(downloaded_file)
             
-            bot.send_message(user_id, f"{PEM['processing']} Processing...")
+            bot.send_message(user_id, "⏳ Processing...")
             
             threading.Thread(
                 target=process_file_worker,
@@ -860,7 +760,7 @@ def start_user_bot(token):
         if token in active_bots:
             active_bots.remove(token)
 
-# ================= 👑 [ MASTER PANEL ] =================
+# ================= 👑 [ 5. MASTER PANEL - YOUR CODE STYLE ] =================
 
 # Store only bot reply message IDs to delete (excluding main menu)
 bot_reply_messages = {}
@@ -880,32 +780,26 @@ def delete_previous_bot_replies(chat_id):
 @master_bot.message_handler(commands=['start'])
 def m_start(m):
     if m.from_user.id not in ADMIN_IDS:
-        master_bot.send_message(m.chat.id, f"{PEM['no']} Unauthorized!")
+        master_bot.send_message(m.chat.id, "❌ Unauthorized!")
         return
     
     delete_previous_bot_replies(m.chat.id)
     
     kb = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    kb.row(f"{PEM['stats']} Total Stats", f"{PEM['payment']} Payment List")
-    kb.row(f"{PEM['file']} Download by Type", f"{PEM['settings']} Type Control")
-    kb.row(f"{PEM['search']} Report Check", f"{PEM['broadcast']} Broadcast")
-    kb.row(f"{PEM['gear']} More Options")
+    kb.row("📊 Total Stats", "📥 Payment List")
+    kb.row("📁 Download by Type", "🎛️ Type Control")
+    kb.row("📋 Report Check", "📢 Broadcast")
+    kb.row("⚙️ More Options")
     
     msg = master_bot.send_message(
         m.chat.id,
-        f"""{PEM['master']} <b>MASTER ADMIN PANEL</b> {PEM['master']}
-
-{PEM['settings']} <b>Current Status:</b>
-{PEM['online']} {get_type_display_name('ig_cookies')}: {'ON' if type_status['ig_cookies'] else 'OFF'}
-{PEM['online']} {get_type_display_name('ig_2fa')}: {'ON' if type_status['ig_2fa'] else 'OFF'}
-{PEM['online']} {get_type_display_name('fb_0fd_2fa')}: {'ON' if type_status['fb_0fd_2fa'] else 'OFF'}
-
-━━━━━━━━━━━━━━━━━━━━
-{PEM['pin']} <b>Select an option below</b>
-
-{PEM['shield']} <b>Secure • Fast • Reliable</b>""",
-        reply_markup=kb,
-        parse_mode="HTML"
+        f"👑 MASTER ADMIN PANEL 👑\n\n"
+        f"🎛️ Current Status:\n"
+        f"🟢 {get_type_display_name('ig_cookies')}: {'ON' if type_status['ig_cookies'] else 'OFF'}\n"
+        f"🟢 {get_type_display_name('ig_2fa')}: {'ON' if type_status['ig_2fa'] else 'OFF'}\n"
+        f"🟢 {get_type_display_name('fb_0fd_2fa')}: {'ON' if type_status['fb_0fd_2fa'] else 'OFF'}\n\n"
+        f"📌 Select an option below",
+        reply_markup=kb
     )
     
     main_menu_id[m.chat.id] = msg.message_id
@@ -914,7 +808,7 @@ def m_start(m):
         bot_reply_messages[m.chat.id] = []
     bot_reply_messages[m.chat.id].append(msg.message_id)
 
-@master_bot.message_handler(func=lambda m: m.text == f"{PEM['gear']} More Options")
+@master_bot.message_handler(func=lambda m: m.text == "⚙️ More Options")
 def m_more_options(m):
     if m.from_user.id not in ADMIN_IDS:
         return
@@ -922,14 +816,14 @@ def m_more_options(m):
     delete_previous_bot_replies(m.chat.id)
     
     kb = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    kb.row(f"{PEM['add']} Add Bot", f"{PEM['remove']} Remove Bot")
-    kb.row(f"{PEM['refresh']} Reset All Types", f"{PEM['trash']} Clear Data")
-    kb.row(f"{PEM['payment']} User Payments", f"{PEM['search']} Search User")
-    kb.row(f"{PEM['back']} Back to Main Menu")
+    kb.row("➕ Add Bot", "❌ Remove Bot")
+    kb.row("🔄 Reset All Types", "🗑 Clear Data")
+    kb.row("💳 User Payments", "🔍 Search User")
+    kb.row("🔙 Back to Main Menu")
     
     msg = master_bot.send_message(
         m.chat.id,
-        f"{PEM['gear']} MORE OPTIONS\n\nSelect an option below:",
+        "⚙️ MORE OPTIONS\n\nSelect an option below:",
         reply_markup=kb
     )
     
@@ -937,7 +831,7 @@ def m_more_options(m):
         bot_reply_messages[m.chat.id] = []
     bot_reply_messages[m.chat.id].append(msg.message_id)
 
-@master_bot.message_handler(func=lambda m: m.text == f"{PEM['back']} Back to Main Menu")
+@master_bot.message_handler(func=lambda m: m.text == "🔙 Back to Main Menu")
 def back_to_main_menu(m):
     if m.from_user.id not in ADMIN_IDS:
         return
@@ -945,26 +839,20 @@ def back_to_main_menu(m):
     delete_previous_bot_replies(m.chat.id)
     
     kb = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    kb.row(f"{PEM['stats']} Total Stats", f"{PEM['payment']} Payment List")
-    kb.row(f"{PEM['file']} Download by Type", f"{PEM['settings']} Type Control")
-    kb.row(f"{PEM['search']} Report Check", f"{PEM['broadcast']} Broadcast")
-    kb.row(f"{PEM['gear']} More Options")
+    kb.row("📊 Total Stats", "📥 Payment List")
+    kb.row("📁 Download by Type", "🎛️ Type Control")
+    kb.row("📋 Report Check", "📢 Broadcast")
+    kb.row("⚙️ More Options")
     
     msg = master_bot.send_message(
         m.chat.id,
-        f"""{PEM['master']} <b>MASTER ADMIN PANEL</b> {PEM['master']}
-
-{PEM['settings']} <b>Current Status:</b>
-{PEM['online']} {get_type_display_name('ig_cookies')}: {'ON' if type_status['ig_cookies'] else 'OFF'}
-{PEM['online']} {get_type_display_name('ig_2fa')}: {'ON' if type_status['ig_2fa'] else 'OFF'}
-{PEM['online']} {get_type_display_name('fb_0fd_2fa')}: {'ON' if type_status['fb_0fd_2fa'] else 'OFF'}
-
-━━━━━━━━━━━━━━━━━━━━
-{PEM['pin']} <b>Select an option below</b>
-
-{PEM['shield']} <b>Secure • Fast • Reliable</b>""",
-        reply_markup=kb,
-        parse_mode="HTML"
+        f"👑 MASTER ADMIN PANEL 👑\n\n"
+        f"🎛️ Current Status:\n"
+        f"🟢 {get_type_display_name('ig_cookies')}: {'ON' if type_status['ig_cookies'] else 'OFF'}\n"
+        f"🟢 {get_type_display_name('ig_2fa')}: {'ON' if type_status['ig_2fa'] else 'OFF'}\n"
+        f"🟢 {get_type_display_name('fb_0fd_2fa')}: {'ON' if type_status['fb_0fd_2fa'] else 'OFF'}\n\n"
+        f"📌 Select an option below",
+        reply_markup=kb
     )
     
     main_menu_id[m.chat.id] = msg.message_id
@@ -986,26 +874,20 @@ def m_back_to_menu_callback(c):
         pass
     
     kb = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    kb.row(f"{PEM['stats']} Total Stats", f"{PEM['payment']} Payment List")
-    kb.row(f"{PEM['file']} Download by Type", f"{PEM['settings']} Type Control")
-    kb.row(f"{PEM['search']} Report Check", f"{PEM['broadcast']} Broadcast")
-    kb.row(f"{PEM['gear']} More Options")
+    kb.row("📊 Total Stats", "📥 Payment List")
+    kb.row("📁 Download by Type", "🎛️ Type Control")
+    kb.row("📋 Report Check", "📢 Broadcast")
+    kb.row("⚙️ More Options")
     
     msg = master_bot.send_message(
         c.message.chat.id,
-        f"""{PEM['master']} <b>MASTER ADMIN PANEL</b> {PEM['master']}
-
-{PEM['settings']} <b>Current Status:</b>
-{PEM['online']} {get_type_display_name('ig_cookies')}: {'ON' if type_status['ig_cookies'] else 'OFF'}
-{PEM['online']} {get_type_display_name('ig_2fa')}: {'ON' if type_status['ig_2fa'] else 'OFF'}
-{PEM['online']} {get_type_display_name('fb_0fd_2fa')}: {'ON' if type_status['fb_0fd_2fa'] else 'OFF'}
-
-━━━━━━━━━━━━━━━━━━━━
-{PEM['pin']} <b>Select an option below</b>
-
-{PEM['shield']} <b>Secure • Fast • Reliable</b>""",
-        reply_markup=kb,
-        parse_mode="HTML"
+        f"👑 MASTER ADMIN PANEL 👑\n\n"
+        f"🎛️ Current Status:\n"
+        f"🟢 {get_type_display_name('ig_cookies')}: {'ON' if type_status['ig_cookies'] else 'OFF'}\n"
+        f"🟢 {get_type_display_name('ig_2fa')}: {'ON' if type_status['ig_2fa'] else 'OFF'}\n"
+        f"🟢 {get_type_display_name('fb_0fd_2fa')}: {'ON' if type_status['fb_0fd_2fa'] else 'OFF'}\n\n"
+        f"📌 Select an option below",
+        reply_markup=kb
     )
     
     main_menu_id[c.message.chat.id] = msg.message_id
@@ -1014,9 +896,9 @@ def m_back_to_menu_callback(c):
         bot_reply_messages[c.message.chat.id] = []
     bot_reply_messages[c.message.chat.id].append(msg.message_id)
 
-# ================= 📢 [ BROADCAST ] =================
+# ================= 📢 [ BROADCAST - YOUR CODE STYLE ] =================
 
-@master_bot.message_handler(func=lambda m: m.text == f"{PEM['broadcast']} Broadcast")
+@master_bot.message_handler(func=lambda m: m.text == "📢 Broadcast")
 def m_broadcast(m):
     if m.from_user.id not in ADMIN_IDS:
         return
@@ -1025,7 +907,7 @@ def m_broadcast(m):
     
     user_ids = load_user_ids()
     if not user_ids:
-        msg = master_bot.send_message(m.chat.id, f"{PEM['no']} No users found!")
+        msg = master_bot.send_message(m.chat.id, "❌ No users found!")
         if m.chat.id not in bot_reply_messages:
             bot_reply_messages[m.chat.id] = []
         bot_reply_messages[m.chat.id].append(msg.message_id)
@@ -1033,10 +915,10 @@ def m_broadcast(m):
     
     if not active_bots:
         kb = types.InlineKeyboardMarkup(row_width=1)
-        kb.add(types.InlineKeyboardButton(f"{PEM['add']} Add Bot", callback_data="goto_add_bot_from_broadcast"))
+        kb.add(types.InlineKeyboardButton("➕ Add Bot", callback_data="goto_add_bot_from_broadcast"))
         msg = master_bot.send_message(
             m.chat.id,
-            f"{PEM['no']} NO ACTIVE USER BOTS!\n\nPlease add a bot first:",
+            "❌ NO ACTIVE USER BOTS!\n\nPlease add a bot first:",
             reply_markup=kb
         )
         if m.chat.id not in bot_reply_messages:
@@ -1046,21 +928,14 @@ def m_broadcast(m):
     
     kb = types.InlineKeyboardMarkup(row_width=1)
     kb.add(
-        types.InlineKeyboardButton(f"{PEM['message']} Send Message", callback_data="broadcast_text"),
-        types.InlineKeyboardButton(f"{PEM['back']} Back", callback_data="broadcast_back")
+        types.InlineKeyboardButton("📝 Send Message", callback_data="broadcast_text"),
+        types.InlineKeyboardButton("🔙 Back", callback_data="broadcast_back")
     )
     
     msg = master_bot.send_message(
         m.chat.id,
-        f"""{PEM['broadcast']} <b>BROADCAST</b>
-
-{PEM['bot']} <b>Active Bots:</b> {len(active_bots)}
-{PEM['user']} <b>Total Users:</b> {len(user_ids)}
-
-━━━━━━━━━━━━━━━━━━━━
-{PEM['pin']} <b>Click below to start</b>""",
-        reply_markup=kb,
-        parse_mode="HTML"
+        f"📢 BROADCAST\n\n🤖 Active Bots: {len(active_bots)}\n👥 Total Users: {len(user_ids)}\n\nClick below to start:",
+        reply_markup=kb
     )
     
     if m.chat.id not in bot_reply_messages:
@@ -1070,7 +945,7 @@ def m_broadcast(m):
 @master_bot.callback_query_handler(func=lambda c: c.data == "goto_add_bot_from_broadcast")
 def goto_add_bot_from_broadcast(c):
     if c.from_user.id not in ADMIN_IDS:
-        master_bot.answer_callback_query(c.id, f"{PEM['no']} Unauthorized!")
+        master_bot.answer_callback_query(c.id, "❌ Unauthorized!")
         return
     
     try:
@@ -1080,14 +955,14 @@ def goto_add_bot_from_broadcast(c):
     
     msg = master_bot.send_message(
         c.message.chat.id,
-        f"{PEM['bot']} Send Bot Token:\n\nGet token from @BotFather\nSend /cancel to cancel:"
+        "🤖 Send Bot Token:\n\nGet token from @BotFather\nSend /cancel to cancel:"
     )
     master_bot.register_next_step_handler(msg, save_bot_token)
 
 @master_bot.callback_query_handler(func=lambda c: c.data.startswith("broadcast_"))
 def broadcast_callback(c):
     if c.from_user.id not in ADMIN_IDS:
-        master_bot.answer_callback_query(c.id, f"{PEM['no']} Unauthorized!")
+        master_bot.answer_callback_query(c.id, "❌ Unauthorized!")
         return
     
     try:
@@ -1100,239 +975,49 @@ def broadcast_callback(c):
         return
     
     if c.data == "broadcast_text":
-        kb = types.InlineKeyboardMarkup(row_width=4)
-        
-        social_emojis = [
-            ("📸", "📸"), ("📘", "📘"), ("💬", "💬"), ("✈️", "✈️"),
-            ("💼", "💼"), ("💭", "💭"), ("🍎", "🍎"), ("🔍", "🔍"),
-            ("🪟", "🪟"), ("🧑‍🤝‍🧑", "🧑‍🤝‍🧑"), ("🎵", "🎵"),
-        ]
-        
-        status_emojis = [
-            ("✅", "✅"), ("❌", "❌"), ("⚠️", "⚠️"), ("⭐", "⭐"),
-            ("🔥", "🔥"), ("🚀", "🚀"), ("🎁", "🎁"), ("👑", "👑"),
-            ("📢", "📢"), ("💬", "💬"), ("‼️", "‼️"), ("🛡️", "🛡️"),
-        ]
-        
-        payment_emojis = [
-            ("🏦", "🏦"), ("🏧", "🏧"), ("🚀", "🚀"), ("💱", "💱"),
-            ("📈", "📈"), ("💰", "💰"), ("📱", "📱"), ("🛒", "🛒"),
-        ]
-        
-        all_emojis = social_emojis + status_emojis + payment_emojis
-        
-        for emoji_char, emoji_name in all_emojis:
-            kb.add(types.InlineKeyboardButton(
-                emoji_char, 
-                callback_data=f"broadcast_emoji_{emoji_char}"
-            ))
-        
-        kb.add(types.InlineKeyboardButton(f"{PEM['ok']} Send", callback_data="broadcast_send"))
-        kb.add(types.InlineKeyboardButton(f"{PEM['trash']} Clear", callback_data="broadcast_clear"))
-        kb.add(types.InlineKeyboardButton(f"{PEM['no']} Cancel", callback_data="broadcast_cancel"))
-        
         msg = master_bot.send_message(
             c.message.chat.id,
-            f"""{PEM['message']} <b>BROADCAST MESSAGE</b>
-
-📸 Instagram | 📘 Facebook | 💬 WhatsApp | ✈️ Telegram
-Select emojis or type your message:
-Click emojis to add them to your message.
-Click 'Send' when ready.
-
-━━━━━━━━━━━━━━━━━━━━
-<b>Current Message:</b>
-_(Empty)_""",
-            reply_markup=kb,
-            parse_mode="HTML"
+            "📝 Send your message\n\nSend /cancel to cancel:"
         )
-        
-        user_sessions[c.message.chat.id] = {
-            "broadcast_mode": True,
-            "broadcast_message": "",
-            "broadcast_msg_id": msg.message_id
-        }
+        master_bot.register_next_step_handler(msg, send_text_broadcast)
 
-@master_bot.callback_query_handler(func=lambda c: c.data.startswith("broadcast_emoji_"))
-def broadcast_emoji_handler(c):
-    if c.from_user.id not in ADMIN_IDS:
-        master_bot.answer_callback_query(c.id, f"{PEM['no']} Unauthorized!")
+def send_text_broadcast(m):
+    if m.from_user.id not in ADMIN_IDS:
         return
     
-    emoji = c.data.replace("broadcast_emoji_", "")
-    
-    if c.message.chat.id not in user_sessions:
-        return
-    
-    session = user_sessions[c.message.chat.id]
-    if not session.get("broadcast_mode"):
-        return
-    
-    session["broadcast_message"] += emoji
-    
-    current_msg = session["broadcast_message"]
-    if not current_msg:
-        current_msg = "_(Empty)_"
-    
-    kb = types.InlineKeyboardMarkup(row_width=4)
-    social_emojis = [
-        ("📸", "📸"), ("📘", "📘"), ("💬", "💬"), ("✈️", "✈️"),
-        ("💼", "💼"), ("💭", "💭"), ("🍎", "🍎"), ("🔍", "🔍"),
-        ("🪟", "🪟"), ("🧑‍🤝‍🧑", "🧑‍🤝‍🧑"), ("🎵", "🎵"),
-    ]
-    status_emojis = [
-        ("✅", "✅"), ("❌", "❌"), ("⚠️", "⚠️"), ("⭐", "⭐"),
-        ("🔥", "🔥"), ("🚀", "🚀"), ("🎁", "🎁"), ("👑", "👑"),
-        ("📢", "📢"), ("💬", "💬"), ("‼️", "‼️"), ("🛡️", "🛡️"),
-    ]
-    payment_emojis = [
-        ("🏦", "🏦"), ("🏧", "🏧"), ("🚀", "🚀"), ("💱", "💱"),
-        ("📈", "📈"), ("💰", "💰"), ("📱", "📱"), ("🛒", "🛒"),
-    ]
-    all_emojis = social_emojis + status_emojis + payment_emojis
-    
-    for emoji_char, emoji_name in all_emojis:
-        kb.add(types.InlineKeyboardButton(
-            emoji_char, 
-            callback_data=f"broadcast_emoji_{emoji_char}"
-        ))
-    
-    kb.add(types.InlineKeyboardButton(f"{PEM['ok']} Send", callback_data="broadcast_send"))
-    kb.add(types.InlineKeyboardButton(f"{PEM['trash']} Clear", callback_data="broadcast_clear"))
-    kb.add(types.InlineKeyboardButton(f"{PEM['no']} Cancel", callback_data="broadcast_cancel"))
-    
-    try:
-        master_bot.edit_message_text(
-            f"""{PEM['message']} <b>BROADCAST MESSAGE</b>
-
-📸 Instagram | 📘 Facebook | 💬 WhatsApp | ✈️ Telegram
-Select emojis or type your message:
-Click emojis to add them to your message.
-Click 'Send' when ready.
-
-━━━━━━━━━━━━━━━━━━━━
-<b>Current Message:</b>
-{current_msg}""",
-            chat_id=c.message.chat.id,
-            message_id=session["broadcast_msg_id"],
-            reply_markup=kb,
-            parse_mode="HTML"
-        )
-    except:
-        pass
-    
-    master_bot.answer_callback_query(c.id, f"Added {emoji}")
-
-@master_bot.callback_query_handler(func=lambda c: c.data == "broadcast_clear")
-def broadcast_clear_handler(c):
-    if c.from_user.id not in ADMIN_IDS:
-        master_bot.answer_callback_query(c.id, f"{PEM['no']} Unauthorized!")
-        return
-    
-    if c.message.chat.id not in user_sessions:
-        return
-    
-    session = user_sessions[c.message.chat.id]
-    if not session.get("broadcast_mode"):
-        return
-    
-    session["broadcast_message"] = ""
-    
-    kb = types.InlineKeyboardMarkup(row_width=4)
-    social_emojis = [
-        ("📸", "📸"), ("📘", "📘"), ("💬", "💬"), ("✈️", "✈️"),
-        ("💼", "💼"), ("💭", "💭"), ("🍎", "🍎"), ("🔍", "🔍"),
-        ("🪟", "🪟"), ("🧑‍🤝‍🧑", "🧑‍🤝‍🧑"), ("🎵", "🎵"),
-    ]
-    status_emojis = [
-        ("✅", "✅"), ("❌", "❌"), ("⚠️", "⚠️"), ("⭐", "⭐"),
-        ("🔥", "🔥"), ("🚀", "🚀"), ("🎁", "🎁"), ("👑", "👑"),
-        ("📢", "📢"), ("💬", "💬"), ("‼️", "‼️"), ("🛡️", "🛡️"),
-    ]
-    payment_emojis = [
-        ("🏦", "🏦"), ("🏧", "🏧"), ("🚀", "🚀"), ("💱", "💱"),
-        ("📈", "📈"), ("💰", "💰"), ("📱", "📱"), ("🛒", "🛒"),
-    ]
-    all_emojis = social_emojis + status_emojis + payment_emojis
-    
-    for emoji_char, emoji_name in all_emojis:
-        kb.add(types.InlineKeyboardButton(
-            emoji_char, 
-            callback_data=f"broadcast_emoji_{emoji_char}"
-        ))
-    
-    kb.add(types.InlineKeyboardButton(f"{PEM['ok']} Send", callback_data="broadcast_send"))
-    kb.add(types.InlineKeyboardButton(f"{PEM['no']} Cancel", callback_data="broadcast_cancel"))
-    
-    try:
-        master_bot.edit_message_text(
-            f"""{PEM['message']} <b>BROADCAST MESSAGE</b>
-
-📸 Instagram | 📘 Facebook | 💬 WhatsApp | ✈️ Telegram
-Select emojis or type your message:
-Click emojis to add them to your message.
-Click 'Send' when ready.
-
-━━━━━━━━━━━━━━━━━━━━
-<b>Current Message:</b>
-_(Empty)_""",
-            chat_id=c.message.chat.id,
-            message_id=session["broadcast_msg_id"],
-            reply_markup=kb,
-            parse_mode="HTML"
-        )
-    except:
-        pass
-    
-    master_bot.answer_callback_query(c.id, f"{PEM['ok']} Cleared!")
-
-@master_bot.callback_query_handler(func=lambda c: c.data == "broadcast_send")
-def broadcast_send_handler(c):
-    if c.from_user.id not in ADMIN_IDS:
-        master_bot.answer_callback_query(c.id, f"{PEM['no']} Unauthorized!")
-        return
-    
-    if c.message.chat.id not in user_sessions:
-        return
-    
-    session = user_sessions[c.message.chat.id]
-    if not session.get("broadcast_mode"):
-        return
-    
-    broadcast_message = session.get("broadcast_message", "")
-    
-    if not broadcast_message:
-        master_bot.answer_callback_query(c.id, f"{PEM['no']} Message is empty!", show_alert=True)
+    if m.text and m.text.startswith('/cancel'):
+        master_bot.send_message(m.chat.id, "❌ Broadcast cancelled.")
         return
     
     try:
-        master_bot.delete_message(c.message.chat.id, c.message.message_id)
+        master_bot.delete_message(m.chat.id, m.message_id)
     except:
         pass
     
-    user_sessions.pop(c.message.chat.id, None)
+    user_message = m.text
+    
+    final_message = f"""‼️ ATTENTION ‼️
+
+{user_message}
+
+Thanks by MAX FUTURE ✅"""
     
     user_ids = load_user_ids()
     
     if not user_ids:
-        master_bot.send_message(c.message.chat.id, f"{PEM['no']} No users found!")
+        master_bot.send_message(m.chat.id, "❌ No users found!")
         return
     
     if not active_bots:
-        master_bot.send_message(c.message.chat.id, f"{PEM['no']} No active user bots!")
+        master_bot.send_message(m.chat.id, "❌ No active user bots!")
         return
     
-    final_message = f"""{PEM['attention']} ATTENTION {PEM['attention']}
-
-{broadcast_message}
-
-{PEM['crown']} Thanks by MAX FUTURE {PEM['ok']}"""
-    
     total_users = len(user_ids)
-    status_msg = master_bot.send_message(c.message.chat.id, f"{PEM['processing']} Sending to {total_users} users...")
+    status_msg = master_bot.send_message(m.chat.id, f"⏳ Sending to {total_users} users...")
     
     success = 0
     fail = 0
+    failed_users = []
     bot_tokens = list(active_bots)
     
     for idx, user_id in enumerate(user_ids):
@@ -1349,11 +1034,12 @@ def broadcast_send_handler(c):
         
         if not sent:
             fail += 1
+            failed_users.append(user_id)
         
         if (idx + 1) % 50 == 0 or (idx + 1) == total_users:
             try:
                 master_bot.edit_message_text(
-                    f"{PEM['processing']} Sending...\n\n{PEM['ok']} Sent: {success}\n{PEM['no']} Failed: {fail}\n{PEM['stats']} Progress: {idx + 1}/{total_users}",
+                    f"⏳ Sending...\n\n📤 Sent: {success}\n❌ Failed: {fail}\n📊 Progress: {idx + 1}/{total_users}",
                     chat_id=status_msg.chat.id,
                     message_id=status_msg.message_id
                 )
@@ -1363,39 +1049,20 @@ def broadcast_send_handler(c):
         time.sleep(0.03)
     
     try:
-        master_bot.delete_message(c.message.chat.id, status_msg.message_id)
+        master_bot.delete_message(m.chat.id, status_msg.message_id)
     except:
         pass
     
-    result_msg = f"""{PEM['ok']} Broadcast Complete!
-
-{PEM['ok']} Success: {success}
-{PEM['no']} Failed: {fail}
-{PEM['user']} Total users: {total_users}"""
+    result_msg = f"✅ Broadcast Complete!\n\n📤 Success: {success}\n❌ Failed: {fail}\n👥 Total users: {total_users}"
     
     if fail > 0:
-        result_msg += f"\n\n{PEM['warn']} {fail} users didn't receive the message."
+        result_msg += f"\n\n⚠️ {fail} users didn't receive the message."
     
-    master_bot.send_message(c.message.chat.id, result_msg)
+    master_bot.send_message(m.chat.id, result_msg)
 
-@master_bot.callback_query_handler(func=lambda c: c.data == "broadcast_cancel")
-def broadcast_cancel_handler(c):
-    if c.from_user.id not in ADMIN_IDS:
-        master_bot.answer_callback_query(c.id, f"{PEM['no']} Unauthorized!")
-        return
-    
-    user_sessions.pop(c.message.chat.id, None)
-    
-    try:
-        master_bot.delete_message(c.message.chat.id, c.message.message_id)
-    except:
-        pass
-    
-    master_bot.send_message(c.message.chat.id, f"{PEM['no']} Broadcast cancelled.")
+# ================= 📋 [ REPORT CHECK ] =================
 
-# ================= 📋 [ REPORT CHECK - UNIQUE OK ] =================
-
-@master_bot.message_handler(func=lambda m: m.text == f"{PEM['search']} Report Check")
+@master_bot.message_handler(func=lambda m: m.text == "📋 Report Check")
 def m_report_check(m):
     if m.from_user.id not in ADMIN_IDS:
         return
@@ -1404,25 +1071,17 @@ def m_report_check(m):
     
     kb = types.InlineKeyboardMarkup(row_width=2)
     kb.add(
-        types.InlineKeyboardButton(f"{get_type_icon('ig_cookies')} {get_type_display_name('ig_cookies')}", callback_data="report_select_ig_cookies"),
-        types.InlineKeyboardButton(f"{get_type_icon('ig_2fa')} {get_type_display_name('ig_2fa')}", callback_data="report_select_ig_2fa"),
-        types.InlineKeyboardButton(f"{get_type_icon('fb_0fd_2fa')} {get_type_display_name('fb_0fd_2fa')}", callback_data="report_select_fb_0fd_2fa"),
-        types.InlineKeyboardButton(f"{PEM['stats']} All Types", callback_data="report_select_all"),
-        types.InlineKeyboardButton(f"{PEM['no']} Cancel", callback_data="report_cancel")
+        types.InlineKeyboardButton(f"📱 {get_type_display_name('ig_cookies')}", callback_data="report_select_ig_cookies"),
+        types.InlineKeyboardButton(f"🔐 {get_type_display_name('ig_2fa')}", callback_data="report_select_ig_2fa"),
+        types.InlineKeyboardButton(f"📘 {get_type_display_name('fb_0fd_2fa')}", callback_data="report_select_fb_0fd_2fa"),
+        types.InlineKeyboardButton("📊 All Types", callback_data="report_select_all"),
+        types.InlineKeyboardButton("❌ Cancel", callback_data="report_cancel")
     )
     
     msg = master_bot.send_message(
         m.chat.id,
-        f"""{PEM['search']} REPORT CHECK
-
-Select which type to check with OK list:
-
-{PEM['info']} You will need to upload a TXT file containing usernames/emails.
-
-━━━━━━━━━━━━━━━━━━━━
-{PEM['pin']} <b>Select an option below</b>""",
-        reply_markup=kb,
-        parse_mode="HTML"
+        "📋 REPORT CHECK\n\nSelect which type to check with OK list:\n\n💡 You will need to upload a TXT file containing usernames/emails.",
+        reply_markup=kb
     )
     
     if m.chat.id not in bot_reply_messages:
@@ -1432,7 +1091,7 @@ Select which type to check with OK list:
 @master_bot.callback_query_handler(func=lambda c: c.data.startswith("report_select_"))
 def m_report_select_callback(c):
     if c.from_user.id not in ADMIN_IDS:
-        master_bot.answer_callback_query(c.id, f"{PEM['no']} Unauthorized!")
+        master_bot.answer_callback_query(c.id, "❌ Unauthorized!")
         return
     
     if c.data == "report_cancel":
@@ -1440,7 +1099,7 @@ def m_report_select_callback(c):
             master_bot.delete_message(c.message.chat.id, c.message.message_id)
         except:
             pass
-        msg = master_bot.send_message(c.message.chat.id, f"{PEM['no']} Report check cancelled.")
+        msg = master_bot.send_message(c.message.chat.id, "❌ Report check cancelled.")
         if c.message.chat.id not in bot_reply_messages:
             bot_reply_messages[c.message.chat.id] = []
         bot_reply_messages[c.message.chat.id].append(msg.message_id)
@@ -1462,16 +1121,13 @@ def m_report_select_callback(c):
     
     msg = master_bot.send_message(
         c.message.chat.id,
-        f"""{PEM['ok']} {display_type} Selected
-
-{PEM['file']} Now send your OK TXT file:
-
-{PEM['info']} Each line should contain one username/email
-📌 Example:
-   • john_doe
-   • jane@email.com
-
-Send /cancel to cancel:"""
+        f"✅ {display_type} Selected\n\n"
+        f"📁 Now send your OK TXT file:\n\n"
+        f"💡 Each line should contain one username/email\n"
+        f"📌 Example:\n"
+        f"   • john_doe\n"
+        f"   • jane@email.com\n\n"
+        f"Send /cancel to cancel:"
     )
     
     if c.message.chat.id not in bot_reply_messages:
@@ -1489,14 +1145,14 @@ def scan_ok_list_clean(m):
     user_sessions.pop(m.chat.id, None)
     
     if not m.document:
-        msg = master_bot.send_message(m.chat.id, f"{PEM['no']} Please send a TXT file!")
+        msg = master_bot.send_message(m.chat.id, "❌ Please send a TXT file!")
         if m.chat.id not in bot_reply_messages:
             bot_reply_messages[m.chat.id] = []
         bot_reply_messages[m.chat.id].append(msg.message_id)
         return
     
     if not m.document.file_name.endswith('.txt'):
-        msg = master_bot.send_message(m.chat.id, f"{PEM['no']} Only TXT files are supported!")
+        msg = master_bot.send_message(m.chat.id, "❌ Only TXT files are supported!")
         if m.chat.id not in bot_reply_messages:
             bot_reply_messages[m.chat.id] = []
         bot_reply_messages[m.chat.id].append(msg.message_id)
@@ -1509,7 +1165,7 @@ def scan_ok_list_clean(m):
     
     status_msg = master_bot.send_message(
         m.chat.id,
-        f"{PEM['processing']} Reading OK list file..."
+        "⏳ Reading OK list file..."
     )
     
     try:
@@ -1530,17 +1186,17 @@ def scan_ok_list_clean(m):
     except Exception as e:
         master_bot.send_message(
             m.chat.id, 
-            f"{PEM['no']} Failed to read file!\n\nError: {str(e)}"
+            f"❌ Failed to read file!\n\nError: {str(e)}"
         )
         return
     
     if not ok_list:
-        master_bot.send_message(m.chat.id, f"{PEM['no']} No valid data found in TXT file!")
+        master_bot.send_message(m.chat.id, "❌ No valid data found in TXT file!")
         return
     
     try:
         master_bot.edit_message_text(
-            f"{PEM['processing']} Scanning {len(ok_list)} unique users...\n\n{PEM['file']} Type: {get_type_display_name(scan_type) if scan_type != 'all' else 'ALL TYPES'}\n{PEM['search']} Searching database...",
+            f"⏳ Scanning {len(ok_list)} unique users...\n\n📂 Type: {get_type_display_name(scan_type) if scan_type != 'all' else 'ALL TYPES'}\n🔍 Searching database...",
             chat_id=status_msg.chat.id,
             message_id=status_msg.message_id
         )
@@ -1634,12 +1290,11 @@ def scan_ok_list_clean(m):
     if not results:
         msg = master_bot.send_message(
             m.chat.id,
-            f"""{PEM['no']} NO MATCHES FOUND!
-
-{PEM['stats']} OK List: {len(ok_list)} users
-{PEM['file']} Files Scanned: {total_files_scanned}
-{PEM['stats']} Data Scanned: {total_data_scanned}
-{PEM['ok']} Matches Found: 0"""
+            f"❌ NO MATCHES FOUND!\n\n"
+            f"📊 OK List: {len(ok_list)} users\n"
+            f"📁 Files Scanned: {total_files_scanned}\n"
+            f"📊 Data Scanned: {total_data_scanned}\n"
+            f"✅ Matches Found: 0"
         )
         if m.chat.id not in bot_reply_messages:
             bot_reply_messages[m.chat.id] = []
@@ -1664,23 +1319,21 @@ def scan_ok_list_clean(m):
         elif payment_method == "Binance":
             binance_count += 1
     
-    report = f"""{PEM['ok']} REPORT CHECK COMPLETE!
-
-{PEM['file']} Type: {display_type}
-{PEM['stats']} OK List: {len(ok_list)} users
-{PEM['file']} Files Scanned: {total_files_scanned}
-{PEM['stats']} Data Scanned: {total_data_scanned}
-━━━━━━━━━━━━━━━━━━━━
-{PEM['ok']} Matched Submitters: {len(results)}
-{PEM['stats']} Total OK Found: {len(found_ok_usernames)}
-{PEM['time']} Scan Time: {current_ok_data['last_scan_time']}
-━━━━━━━━━━━━━━━━━━━━
-
-{PEM['payment']} Payment Breakdown:
-{PEM['bkash']} bKash: {bkash_count} submitters
-{PEM['nagad']} Nagad: {nagad_count} submitters
-{PEM['rocket']} Rocket: {rocket_count} submitters
-{PEM['binance']} Binance: {binance_count} submitters"""
+    report = f"✅ REPORT CHECK COMPLETE!\n\n"
+    report += f"📂 Type: {display_type}\n"
+    report += f"📊 OK List: {len(ok_list)} users\n"
+    report += f"📁 Files Scanned: {total_files_scanned}\n"
+    report += f"📊 Data Scanned: {total_data_scanned}\n"
+    report += f"━━━━━━━━━━━━━━━━━━━━\n"
+    report += f"✅ Matched Submitters: {len(results)}\n"
+    report += f"📈 Total OK Found: {len(found_ok_usernames)}\n"
+    report += f"🕐 Scan Time: {current_ok_data['last_scan_time']}\n"
+    report += f"━━━━━━━━━━━━━━━━━━━━\n\n"
+    report += f"💳 Payment Breakdown:\n"
+    report += f"🏦 bKash: {bkash_count} submitters\n"
+    report += f"🏧 Nagad: {nagad_count} submitters\n"
+    report += f"💳 Rocket: {rocket_count} submitters\n"
+    report += f"₿ Binance: {binance_count} submitters"
     
     msg = master_bot.send_message(m.chat.id, report)
     if m.chat.id not in bot_reply_messages:
@@ -1689,7 +1342,7 @@ def scan_ok_list_clean(m):
 
 # ================= 📥 [ PAYMENT LIST ] =================
 
-@master_bot.message_handler(func=lambda m: m.text == f"{PEM['payment']} Payment List")
+@master_bot.message_handler(func=lambda m: m.text == "📥 Payment List")
 def m_payment_list(m):
     if m.from_user.id not in ADMIN_IDS:
         return
@@ -1698,23 +1351,17 @@ def m_payment_list(m):
     
     kb = types.InlineKeyboardMarkup(row_width=2)
     kb.add(
-        types.InlineKeyboardButton(f"{get_type_icon('ig_cookies')} {get_type_display_name('ig_cookies')}", callback_data="paylist_select_ig_cookies"),
-        types.InlineKeyboardButton(f"{get_type_icon('ig_2fa')} {get_type_display_name('ig_2fa')}", callback_data="paylist_select_ig_2fa"),
-        types.InlineKeyboardButton(f"{get_type_icon('fb_0fd_2fa')} {get_type_display_name('fb_0fd_2fa')}", callback_data="paylist_select_fb_0fd_2fa"),
-        types.InlineKeyboardButton(f"{PEM['stats']} All Types", callback_data="paylist_select_all"),
-        types.InlineKeyboardButton(f"{PEM['no']} Cancel", callback_data="paylist_cancel")
+        types.InlineKeyboardButton(f"📱 {get_type_display_name('ig_cookies')}", callback_data="paylist_select_ig_cookies"),
+        types.InlineKeyboardButton(f"🔐 {get_type_display_name('ig_2fa')}", callback_data="paylist_select_ig_2fa"),
+        types.InlineKeyboardButton(f"📘 {get_type_display_name('fb_0fd_2fa')}", callback_data="paylist_select_fb_0fd_2fa"),
+        types.InlineKeyboardButton("📊 All Types", callback_data="paylist_select_all"),
+        types.InlineKeyboardButton("❌ Cancel", callback_data="paylist_cancel")
     )
     
     msg = master_bot.send_message(
         m.chat.id,
-        f"""{PEM['payment']} PAYMENT LIST
-
-Select which type you want to see:
-
-━━━━━━━━━━━━━━━━━━━━
-{PEM['pin']} <b>Select an option below</b>""",
-        reply_markup=kb,
-        parse_mode="HTML"
+        f"📥 PAYMENT LIST\n\nSelect which type you want to see:",
+        reply_markup=kb
     )
     
     if m.chat.id not in bot_reply_messages:
@@ -1724,7 +1371,7 @@ Select which type you want to see:
 @master_bot.callback_query_handler(func=lambda c: c.data.startswith("paylist_select_"))
 def m_paylist_select_callback(c):
     if c.from_user.id not in ADMIN_IDS:
-        master_bot.answer_callback_query(c.id, f"{PEM['no']} Unauthorized!")
+        master_bot.answer_callback_query(c.id, "❌ Unauthorized!")
         return
     
     if c.data == "paylist_cancel":
@@ -1732,7 +1379,7 @@ def m_paylist_select_callback(c):
             master_bot.delete_message(c.message.chat.id, c.message.message_id)
         except:
             pass
-        msg = master_bot.send_message(c.message.chat.id, f"{PEM['no']} Cancelled.")
+        msg = master_bot.send_message(c.message.chat.id, "❌ Cancelled.")
         if c.message.chat.id not in bot_reply_messages:
             bot_reply_messages[c.message.chat.id] = []
         bot_reply_messages[c.message.chat.id].append(msg.message_id)
@@ -1801,13 +1448,13 @@ def generate_payment_list_file(chat_id, file_types, type_label):
     if not submitter_data:
         master_bot.send_message(
             chat_id, 
-            f"{PEM['no']} NO DATA FOUND!\n\nType: {type_label}"
+            f"❌ NO DATA FOUND!\n\nType: {type_label}"
         )
         return
     
     status_msg = master_bot.send_message(
         chat_id, 
-        f"{PEM['processing']} Generating {type_label} Payment List..."
+        f"⏳ Generating {type_label} Payment List..."
     )
     
     payment_order = {"bKash": 1, "Nagad": 2, "Rocket": 3, "Binance": 4}
@@ -1834,17 +1481,15 @@ def generate_payment_list_file(chat_id, file_types, type_label):
     except:
         pass
     
-    summary = f"""{PEM['ok']} PAYMENT LIST REPORT
-
-{PEM['file']} Type: {type_label}
-{PEM['date']} Generated: {current_date}
-━━━━━━━━━━━━━━━━━━━━
-{PEM['file']} Total Files: {total_submitters}
-{PEM['stats']} Total Rows: {total_rows}
-{PEM['ok']} Total OK: {total_ok}
-━━━━━━━━━━━━━━━━━━━━
-
-{PEM['download']} Downloading file..."""
+    summary = f"✅ PAYMENT LIST REPORT\n\n"
+    summary += f"📂 Type: {type_label}\n"
+    summary += f"📅 Generated: {current_date}\n"
+    summary += f"━━━━━━━━━━━━━━━━━━━━\n"
+    summary += f"📁 Total Files: {total_submitters}\n"
+    summary += f"📊 Total Rows: {total_rows}\n"
+    summary += f"✅ Total OK: {total_ok}\n"
+    summary += f"━━━━━━━━━━━━━━━━━━━━\n\n"
+    summary += f"📥 Downloading file..."
     
     msg = master_bot.send_message(chat_id, summary)
     if chat_id not in bot_reply_messages:
@@ -1855,19 +1500,18 @@ def generate_payment_list_file(chat_id, file_types, type_label):
         master_bot.send_document(
             chat_id, 
             f, 
-            caption=f"""📊 {type_label} PAYMENT LIST
-📅 Date: {current_date}
-📁 Total Files: {total_submitters}
-✅ Total OK: {total_ok}
-
-Columns: submitted_by, payment_method, payment_number, total_rows, ok_count, file_name, received_date"""
+            caption=f"📊 {type_label} PAYMENT LIST\n"
+                    f"📅 Date: {current_date}\n"
+                    f"📁 Total Files: {total_submitters}\n"
+                    f"✅ Total OK: {total_ok}\n\n"
+                    f"Columns: submitted_by, payment_method, payment_number, total_rows, ok_count, file_name, received_date"
         )
     
     os.remove(data_file)
 
 # ================= 💳 [ USER PAYMENTS ] =================
 
-@master_bot.message_handler(func=lambda m: m.text == f"{PEM['payment']} User Payments")
+@master_bot.message_handler(func=lambda m: m.text == "💳 User Payments")
 def m_user_payments(m):
     if m.from_user.id not in ADMIN_IDS:
         return
@@ -1880,7 +1524,7 @@ def m_user_payments(m):
     if not user_payments:
         msg = master_bot.send_message(
             m.chat.id, 
-            f"{PEM['no']} No user payment data found!"
+            "❌ No user payment data found!"
         )
         if m.chat.id not in bot_reply_messages:
             bot_reply_messages[m.chat.id] = []
@@ -1889,7 +1533,7 @@ def m_user_payments(m):
     
     status_msg = master_bot.send_message(
         m.chat.id, 
-        f"{PEM['processing']} Generating User Payment List..."
+        "⏳ Generating User Payment List..."
     )
     
     payment_data = []
@@ -1918,13 +1562,11 @@ def m_user_payments(m):
     except:
         pass
     
-    summary = f"""{PEM['payment']} USER PAYMENT REPORT
-
-📅 Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-👥 Total Users: {len(payment_data)}
-━━━━━━━━━━━━━━━━━━━━
-
-📥 Downloading file..."""
+    summary = f"💳 USER PAYMENT REPORT\n\n"
+    summary += f"📅 Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+    summary += f"👥 Total Users: {len(payment_data)}\n"
+    summary += f"━━━━━━━━━━━━━━━━━━━━\n"
+    summary += f"📥 Downloading file..."
     
     msg = master_bot.send_message(m.chat.id, summary)
     if m.chat.id not in bot_reply_messages:
@@ -1935,18 +1577,17 @@ def m_user_payments(m):
         master_bot.send_document(
             m.chat.id, 
             f, 
-            caption=f"""📊 USER PAYMENT LIST
-📅 Date: {current_date}
-👥 Total Users: {len(payment_data)}
-
-Columns: User ID, Username, Method, Number"""
+            caption=f"📊 USER PAYMENT LIST\n"
+                    f"📅 Date: {current_date}\n"
+                    f"👥 Total Users: {len(payment_data)}\n\n"
+                    f"Columns: User ID, Username, Method, Number"
         )
     
     os.remove(data_file)
 
 # ================= 📊 [ TOTAL STATS ] =================
 
-@master_bot.message_handler(func=lambda m: m.text == f"{PEM['stats']} Total Stats")
+@master_bot.message_handler(func=lambda m: m.text == "📊 Total Stats")
 def m_stats(m):
     if m.from_user.id not in ADMIN_IDS:
         return
@@ -1984,20 +1625,18 @@ def m_stats(m):
     bot_count = len(db.get("tokens", []))
     user_payment_count = len(db.get("user_payment_settings", {}))
     
-    stats_msg = f"""{PEM['stats']} TOTAL STATISTICS
-📅 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-{PEM['bot']} Bots: {bot_count}
-{PEM['user']} Users: {len(user_ids)}
-{PEM['payment']} Payment Users: {user_payment_count}
-{PEM['stats']} Global Records: {global_unique_count}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📂 TYPE WISE STATISTICS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-"""
+    stats_msg = (
+        f"📊 TOTAL STATISTICS\n"
+        f"📅 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+        f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+        f"🤖 Bots: {bot_count}\n"
+        f"👥 Users: {len(user_ids)}\n"
+        f"💳 Payment Users: {user_payment_count}\n"
+        f"📊 Global Records: {global_unique_count}\n\n"
+        f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        f"📂 TYPE WISE STATISTICS\n"
+        f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+    )
     
     for file_type, stats in type_stats.items():
         display_name = get_type_display_name(file_type)
@@ -2027,7 +1666,7 @@ def m_stats(m):
 
 # ================= 🎛️ [ TYPE CONTROL ] =================
 
-@master_bot.message_handler(func=lambda m: m.text == f"{PEM['settings']} Type Control")
+@master_bot.message_handler(func=lambda m: m.text == "🎛️ Type Control")
 def m_type_control(m):
     if m.from_user.id not in ADMIN_IDS:
         return
@@ -2039,19 +1678,13 @@ def m_type_control(m):
         types.InlineKeyboardButton(f"{'🟢' if type_status['ig_cookies'] else '🔴'} {get_type_display_name('ig_cookies')}", callback_data="toggle_ig_cookies"),
         types.InlineKeyboardButton(f"{'🟢' if type_status['ig_2fa'] else '🔴'} {get_type_display_name('ig_2fa')}", callback_data="toggle_ig_2fa"),
         types.InlineKeyboardButton(f"{'🟢' if type_status['fb_0fd_2fa'] else '🔴'} {get_type_display_name('fb_0fd_2fa')}", callback_data="toggle_fb_0fd_2fa"),
-        types.InlineKeyboardButton(f"{PEM['back']} Back", callback_data="back_to_menu")
+        types.InlineKeyboardButton("🔙 Back", callback_data="back_to_menu")
     )
     
     msg = master_bot.send_message(
         m.chat.id,
-        f"""{PEM['settings']} TYPE CONTROL PANEL
-
-Click to toggle ON/OFF:
-
-━━━━━━━━━━━━━━━━━━━━
-{PEM['pin']} <b>Select an option below</b>""",
-        reply_markup=kb,
-        parse_mode="HTML"
+        "🎛️ TYPE CONTROL PANEL\n\nClick to toggle ON/OFF:",
+        reply_markup=kb
     )
     
     if m.chat.id not in bot_reply_messages:
@@ -2061,7 +1694,7 @@ Click to toggle ON/OFF:
 @master_bot.callback_query_handler(func=lambda c: c.data.startswith("toggle_"))
 def m_toggle_type(c):
     if c.from_user.id not in ADMIN_IDS:
-        master_bot.answer_callback_query(c.id, f"{PEM['no']} Unauthorized!")
+        master_bot.answer_callback_query(c.id, "❌ Unauthorized!")
         return
     
     type_name = c.data.replace("toggle_", "")
@@ -2082,21 +1715,17 @@ def m_toggle_type(c):
         types.InlineKeyboardButton(f"{'🟢' if type_status['ig_cookies'] else '🔴'} {get_type_display_name('ig_cookies')}", callback_data="toggle_ig_cookies"),
         types.InlineKeyboardButton(f"{'🟢' if type_status['ig_2fa'] else '🔴'} {get_type_display_name('ig_2fa')}", callback_data="toggle_ig_2fa"),
         types.InlineKeyboardButton(f"{'🟢' if type_status['fb_0fd_2fa'] else '🔴'} {get_type_display_name('fb_0fd_2fa')}", callback_data="toggle_fb_0fd_2fa"),
-        types.InlineKeyboardButton(f"{PEM['back']} Back", callback_data="back_to_menu")
+        types.InlineKeyboardButton("🔙 Back", callback_data="back_to_menu")
     )
     
     msg = master_bot.send_message(
         c.message.chat.id,
-        f"""{PEM['settings']} TYPE CONTROL PANEL
-
-🟢 {get_type_display_name('ig_cookies')}: {'ON' if type_status['ig_cookies'] else 'OFF'}
-🟢 {get_type_display_name('ig_2fa')}: {'ON' if type_status['ig_2fa'] else 'OFF'}
-🟢 {get_type_display_name('fb_0fd_2fa')}: {'ON' if type_status['fb_0fd_2fa'] else 'OFF'}
-
-━━━━━━━━━━━━━━━━━━━━
-{PEM['pin']} <b>Click to toggle:</b>""",
-        reply_markup=kb,
-        parse_mode="HTML"
+        f"🎛️ TYPE CONTROL PANEL\n\n"
+        f"🟢 {get_type_display_name('ig_cookies')}: {'ON' if type_status['ig_cookies'] else 'OFF'}\n"
+        f"🟢 {get_type_display_name('ig_2fa')}: {'ON' if type_status['ig_2fa'] else 'OFF'}\n"
+        f"🟢 {get_type_display_name('fb_0fd_2fa')}: {'ON' if type_status['fb_0fd_2fa'] else 'OFF'}\n\n"
+        f"Click to toggle:",
+        reply_markup=kb
     )
     
     if c.message.chat.id not in bot_reply_messages:
@@ -2105,7 +1734,7 @@ def m_toggle_type(c):
 
 # ================= 📁 [ DOWNLOAD BY TYPE ] =================
 
-@master_bot.message_handler(func=lambda m: m.text == f"{PEM['file']} Download by Type")
+@master_bot.message_handler(func=lambda m: m.text == "📁 Download by Type")
 def m_download_by_type(m):
     if m.from_user.id not in ADMIN_IDS:
         return
@@ -2114,12 +1743,12 @@ def m_download_by_type(m):
     
     kb = types.InlineKeyboardMarkup(row_width=2)
     kb.add(
-        types.InlineKeyboardButton(f"{get_type_icon('ig_cookies')} {get_type_display_name('ig_cookies')}", callback_data="dltype_ig_cookies"),
-        types.InlineKeyboardButton(f"{get_type_icon('ig_2fa')} {get_type_display_name('ig_2fa')}", callback_data="dltype_ig_2fa"),
-        types.InlineKeyboardButton(f"{get_type_icon('fb_0fd_2fa')} {get_type_display_name('fb_0fd_2fa')}", callback_data="dltype_fb_0fd_2fa"),
-        types.InlineKeyboardButton(f"{PEM['no']} Cancel", callback_data="dltype_cancel")
+        types.InlineKeyboardButton(f"📱 {get_type_display_name('ig_cookies')}", callback_data="dltype_ig_cookies"),
+        types.InlineKeyboardButton(f"🔐 {get_type_display_name('ig_2fa')}", callback_data="dltype_ig_2fa"),
+        types.InlineKeyboardButton(f"📘 {get_type_display_name('fb_0fd_2fa')}", callback_data="dltype_fb_0fd_2fa"),
+        types.InlineKeyboardButton("❌ Cancel", callback_data="dltype_cancel")
     )
-    msg = master_bot.send_message(m.chat.id, f"{PEM['file']} Select type:", reply_markup=kb)
+    msg = master_bot.send_message(m.chat.id, "Select type:", reply_markup=kb)
     
     if m.chat.id not in bot_reply_messages:
         bot_reply_messages[m.chat.id] = []
@@ -2132,7 +1761,7 @@ def m_download_type_callback(c):
             master_bot.delete_message(c.message.chat.id, c.message.message_id)
         except:
             pass
-        msg = master_bot.send_message(c.message.chat.id, f"{PEM['no']} Cancelled.")
+        msg = master_bot.send_message(c.message.chat.id, "❌ Cancelled.")
         if c.message.chat.id not in bot_reply_messages:
             bot_reply_messages[c.message.chat.id] = []
         bot_reply_messages[c.message.chat.id].append(msg.message_id)
@@ -2146,7 +1775,7 @@ def m_download_type_callback(c):
     all_unique_data = db["all_unique_data"].get(file_type, {})
     
     if not all_unique_data:
-        master_bot.answer_callback_query(c.id, f"{PEM['no']} No data for {display_type}")
+        master_bot.answer_callback_query(c.id, f"No data for {display_type}")
         return
     
     try:
@@ -2156,7 +1785,7 @@ def m_download_type_callback(c):
     
     status_msg = master_bot.send_message(
         c.message.chat.id, 
-        f"{PEM['processing']} Generating {display_type} data..."
+        f"⏳ Generating {display_type} data..."
     )
     
     current_date = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -2201,17 +1830,14 @@ def m_download_type_callback(c):
         master_bot.send_document(
             c.message.chat.id, 
             f, 
-            caption=f"""📊 {display_type}
-📅 Date: {current_date}
-Total rows: {total_rows}
-Rows with Cookies: {rows_with_cookies}"""
+            caption=f"📊 {display_type}\n📅 Date: {current_date}\nTotal rows: {total_rows}\nRows with Cookies: {rows_with_cookies}"
         )
     
     os.remove(data_file)
 
 # ================= 🗑 [ CLEAR DATA ] =================
 
-@master_bot.message_handler(func=lambda m: m.text == f"{PEM['trash']} Clear Data")
+@master_bot.message_handler(func=lambda m: m.text == "🗑 Clear Data")
 def m_clear_data(m):
     if m.from_user.id not in ADMIN_IDS:
         return
@@ -2220,25 +1846,17 @@ def m_clear_data(m):
     
     kb = types.InlineKeyboardMarkup(row_width=2)
     kb.add(
-        types.InlineKeyboardButton(f"{get_type_icon('ig_cookies')} {get_type_display_name('ig_cookies')}", callback_data="clear_ig_cookies"),
-        types.InlineKeyboardButton(f"{get_type_icon('ig_2fa')} {get_type_display_name('ig_2fa')}", callback_data="clear_ig_2fa"),
-        types.InlineKeyboardButton(f"{get_type_icon('fb_0fd_2fa')} {get_type_display_name('fb_0fd_2fa')}", callback_data="clear_fb_0fd_2fa"),
-        types.InlineKeyboardButton(f"{PEM['trash']} Clear All", callback_data="clear_all"),
-        types.InlineKeyboardButton(f"{PEM['no']} Cancel", callback_data="clear_cancel")
+        types.InlineKeyboardButton(f"📱 {get_type_display_name('ig_cookies')}", callback_data="clear_ig_cookies"),
+        types.InlineKeyboardButton(f"🔐 {get_type_display_name('ig_2fa')}", callback_data="clear_ig_2fa"),
+        types.InlineKeyboardButton(f"📘 {get_type_display_name('fb_0fd_2fa')}", callback_data="clear_fb_0fd_2fa"),
+        types.InlineKeyboardButton("🗑 Clear All", callback_data="clear_all"),
+        types.InlineKeyboardButton("❌ Cancel", callback_data="clear_cancel")
     )
     
     msg = master_bot.send_message(
         m.chat.id,
-        f"""{PEM['trash']} CLEAR DATA
-
-Select which type to clear:
-
-━━━━━━━━━━━━━━━━━━━━
-{PEM['pin']} <b>Select an option below</b>
-
-{PEM['warn']} <b>Warning:</b> This action cannot be undone!""",
-        reply_markup=kb,
-        parse_mode="HTML"
+        "🗑 CLEAR DATA\n\nSelect which type to clear:",
+        reply_markup=kb
     )
     
     if m.chat.id not in bot_reply_messages:
@@ -2248,7 +1866,7 @@ Select which type to clear:
 @master_bot.callback_query_handler(func=lambda c: c.data.startswith("clear_"))
 def m_clear_callback(c):
     if c.from_user.id not in ADMIN_IDS:
-        master_bot.answer_callback_query(c.id, f"{PEM['no']} Unauthorized!")
+        master_bot.answer_callback_query(c.id, "❌ Unauthorized!")
         return
     
     if c.data == "clear_cancel":
@@ -2256,7 +1874,7 @@ def m_clear_callback(c):
             master_bot.delete_message(c.message.chat.id, c.message.message_id)
         except:
             pass
-        msg = master_bot.send_message(c.message.chat.id, f"{PEM['no']} Cancelled.")
+        msg = master_bot.send_message(c.message.chat.id, "❌ Cancelled.")
         if c.message.chat.id not in bot_reply_messages:
             bot_reply_messages[c.message.chat.id] = []
         bot_reply_messages[c.message.chat.id].append(msg.message_id)
@@ -2285,7 +1903,7 @@ def m_clear_callback(c):
         except:
             pass
         
-        msg = master_bot.send_message(c.message.chat.id, f"{PEM['ok']} ALL DATA CLEARED!")
+        msg = master_bot.send_message(c.message.chat.id, "✅ ALL DATA CLEARED!")
         if c.message.chat.id not in bot_reply_messages:
             bot_reply_messages[c.message.chat.id] = []
         bot_reply_messages[c.message.chat.id].append(msg.message_id)
@@ -2325,7 +1943,7 @@ def m_clear_callback(c):
     
     msg = master_bot.send_message(
         c.message.chat.id, 
-        f"{PEM['ok']} {display_name} DATA CLEARED!"
+        f"✅ {display_name} DATA CLEARED!"
     )
     if c.message.chat.id not in bot_reply_messages:
         bot_reply_messages[c.message.chat.id] = []
@@ -2333,7 +1951,7 @@ def m_clear_callback(c):
 
 # ================= 🔍 [ SEARCH USER ] =================
 
-@master_bot.message_handler(func=lambda m: m.text == f"{PEM['search']} Search User")
+@master_bot.message_handler(func=lambda m: m.text == "🔍 Search User")
 def m_search_user(m):
     if m.from_user.id not in ADMIN_IDS:
         return
@@ -2342,10 +1960,7 @@ def m_search_user(m):
     
     msg = master_bot.send_message(
         m.chat.id, 
-        f"""{PEM['search']} Enter User ID:
-
-Type the User ID to search:
-Send /cancel to cancel"""
+        "🔍 Enter User ID:\n\nType the User ID to search:\nSend /cancel to cancel"
     )
     master_bot.register_next_step_handler(msg, search_user_payment)
 
@@ -2354,7 +1969,7 @@ def search_user_payment(m):
         return
     
     if m.text and m.text.startswith('/cancel'):
-        master_bot.send_message(m.chat.id, f"{PEM['no']} Cancelled.")
+        master_bot.send_message(m.chat.id, "❌ Cancelled.")
         return
     
     search_query = m.text.strip()
@@ -2365,11 +1980,10 @@ def search_user_payment(m):
     if search_query in user_payments:
         payment = user_payments[search_query]
         
-        result_text = f"""{PEM['ok']} User Found!
-
-{PEM['user']} User ID: {search_query}
-{PEM['payment']} Method: {payment.get('payment_method', 'N/A')}
-📱 Number: {payment.get('payment_number', 'N/A')}"""
+        result_text = f"🔍 User Found!\n\n"
+        result_text += f"👤 User ID: {search_query}\n"
+        result_text += f"💳 Method: {payment.get('payment_method', 'N/A')}\n"
+        result_text += f"📱 Number: {payment.get('payment_number', 'N/A')}\n"
         
         msg = master_bot.send_message(m.chat.id, result_text)
         if m.chat.id not in bot_reply_messages:
@@ -2378,7 +1992,7 @@ def search_user_payment(m):
     else:
         msg = master_bot.send_message(
             m.chat.id, 
-            f"{PEM['no']} No user found with ID: {search_query}"
+            f"❌ No user found with ID: {search_query}"
         )
         if m.chat.id not in bot_reply_messages:
             bot_reply_messages[m.chat.id] = []
@@ -2386,24 +2000,24 @@ def search_user_payment(m):
 
 # ================= ➕ [ ADD/REMOVE BOT ] =================
 
-@master_bot.message_handler(func=lambda m: m.text == f"{PEM['add']} Add Bot")
+@master_bot.message_handler(func=lambda m: m.text == "➕ Add Bot")
 def m_add_bot(m):
     if m.from_user.id not in ADMIN_IDS:
         return
     
     delete_previous_bot_replies(m.chat.id)
     
-    msg = master_bot.send_message(m.chat.id, f"{PEM['bot']} Send Bot Token:")
+    msg = master_bot.send_message(m.chat.id, "🤖 Send Bot Token:")
     master_bot.register_next_step_handler(msg, save_bot_token)
 
 def save_bot_token(m):
     if m.text.startswith('/'):
-        master_bot.send_message(m.chat.id, f"{PEM['no']} Cancelled.")
+        master_bot.send_message(m.chat.id, "❌ Cancelled.")
         return
     
     token = m.text.strip()
     if ':' not in token or len(token) < 30:
-        master_bot.send_message(m.chat.id, f"{PEM['no']} Invalid token!")
+        master_bot.send_message(m.chat.id, "❌ Invalid token!")
         return
     
     db = load_db()
@@ -2411,14 +2025,14 @@ def save_bot_token(m):
         db["tokens"].append(token)
         save_db(db)
         threading.Thread(target=start_user_bot, args=(token,), daemon=True).start()
-        msg = master_bot.send_message(m.chat.id, f"{PEM['ok']} Bot added!")
+        msg = master_bot.send_message(m.chat.id, "✅ Bot added!")
         if m.chat.id not in bot_reply_messages:
             bot_reply_messages[m.chat.id] = []
         bot_reply_messages[m.chat.id].append(msg.message_id)
     else:
-        master_bot.send_message(m.chat.id, f"{PEM['warn']} Bot already exists!")
+        master_bot.send_message(m.chat.id, "⚠️ Bot already exists!")
 
-@master_bot.message_handler(func=lambda m: m.text == f"{PEM['remove']} Remove Bot")
+@master_bot.message_handler(func=lambda m: m.text == "❌ Remove Bot")
 def m_remove_bot(m):
     if m.from_user.id not in ADMIN_IDS:
         return
@@ -2427,14 +2041,14 @@ def m_remove_bot(m):
     
     db = load_db()
     if not db["tokens"]:
-        master_bot.send_message(m.chat.id, f"{PEM['no']} No bots!")
+        master_bot.send_message(m.chat.id, "❌ No bots!")
         return
     
     kb = types.InlineKeyboardMarkup()
     for i, token in enumerate(db["tokens"]):
-        kb.add(types.InlineKeyboardButton(f"{PEM['bot']} Bot {i+1}", callback_data=f"remove_{i}"))
-    kb.add(types.InlineKeyboardButton(f"{PEM['no']} Cancel", callback_data="remove_cancel"))
-    master_bot.send_message(m.chat.id, f"{PEM['remove']} Select bot:", reply_markup=kb)
+        kb.add(types.InlineKeyboardButton(f"🤖 Bot {i+1}", callback_data=f"remove_{i}"))
+    kb.add(types.InlineKeyboardButton("❌ Cancel", callback_data="remove_cancel"))
+    master_bot.send_message(m.chat.id, "Select bot:", reply_markup=kb)
 
 @master_bot.callback_query_handler(func=lambda c: c.data.startswith("remove_"))
 def m_remove_callback(c):
@@ -2443,7 +2057,7 @@ def m_remove_callback(c):
             master_bot.delete_message(c.message.chat.id, c.message.message_id)
         except:
             pass
-        master_bot.send_message(c.message.chat.id, f"{PEM['no']} Cancelled.")
+        master_bot.send_message(c.message.chat.id, "❌ Cancelled.")
         return
     
     idx = int(c.data.split("_")[1])
@@ -2459,11 +2073,11 @@ def m_remove_callback(c):
         except:
             pass
         
-        master_bot.send_message(c.message.chat.id, f"{PEM['ok']} Bot removed")
+        master_bot.send_message(c.message.chat.id, f"✅ Bot removed")
 
 # ================= 🔄 [ RESET ALL TYPES ] =================
 
-@master_bot.message_handler(func=lambda m: m.text == f"{PEM['refresh']} Reset All Types")
+@master_bot.message_handler(func=lambda m: m.text == "🔄 Reset All Types")
 def m_reset_types(m):
     if m.from_user.id not in ADMIN_IDS:
         return
@@ -2477,47 +2091,12 @@ def m_reset_types(m):
         "fb_0fd_2fa": True
     }
     
-    msg = master_bot.send_message(m.chat.id, f"{PEM['ok']} All types reset to ON!")
+    msg = master_bot.send_message(m.chat.id, "✅ All types reset to ON!")
     if m.chat.id not in bot_reply_messages:
         bot_reply_messages[m.chat.id] = []
     bot_reply_messages[m.chat.id].append(msg.message_id)
 
-# ================= 🔄 [ MAIN FUNCTION ] =================
-
-def main():
-    """Main entry point for the bot"""
-    print("=" * 50)
-    print("👑 ID RECEIVER SYSTEM v30.0")
-    print("🎛️ UNIQUE OK COUNT")
-    print("🎛️ EACH FILE SEPARATE IN PAYMENT LIST")
-    print("🎛️ DATE FORMAT: DD-MM-YYYY")
-    print("🎛️ PAYMENT METHOD ORDER: bKash → Nagad → Rocket → Binance")
-    print("🎛️ MAIN MENU KEEPS")
-    print("🎛️ USER MESSAGES KEPT")
-    print("🎛️ ONLY BOT REPLIES DELETED")
-    print("🎛️ PREMIUM EMOJI SUPPORT")
-    print("🎛️ FACEBOOK 0FD COOKIES SUPPORT")
-    print("🎛️ COOKIES IN SEPARATE COLUMN")
-    print("=" * 50)
-    
-    if not MASTER_ADMIN_TOKEN:
-        print("❌ ERROR: MASTER_ADMIN_TOKEN not found in environment variables!")
-        print("📌 Please set MASTER_ADMIN_TOKEN in Railway Variables")
-        return
-    
-    load_db()
-    run_all_bots()
-    
-    print(f"✅ Master Bot Online!")
-    print(f"📌 Send /start to access admin panel")
-    print("=" * 50)
-    
-    while True:
-        try:
-            master_bot.infinity_polling(timeout=60, skip_pending=True)
-        except Exception as e:
-            print(f"❌ Error: {e}")
-            time.sleep(5)
+# ================= 🔄 [ MAIN ] =================
 
 def run_all_bots():
     db = load_db()
@@ -2529,4 +2108,32 @@ def run_all_bots():
             time.sleep(2)
 
 if __name__ == "__main__":
-    main()
+    print("=" * 50)
+    print("👑 ID RECEIVER SYSTEM v30.0")
+    print("🎛️ UNIQUE OK COUNT")
+    print("🎛️ EACH FILE SEPARATE IN PAYMENT LIST")
+    print("🎛️ DATE FORMAT: DD-MM-YYYY")
+    print("🎛️ PAYMENT METHOD ORDER: bKash → Nagad → Rocket → Binance")
+    print("🎛️ MAIN MENU KEEPS")
+    print("🎛️ USER MESSAGES KEPT")
+    print("🎛️ ONLY BOT REPLIES DELETED")
+    print("🎛️ FACEBOOK 0FD COOKIES FIXED")
+    print("=" * 50)
+    
+    if not MASTER_ADMIN_TOKEN:
+        print("❌ ERROR: MASTER_ADMIN_TOKEN not found in environment variables!")
+        print("📌 Please set MASTER_ADMIN_TOKEN in Railway Variables")
+    else:
+        load_db()
+        run_all_bots()
+        
+        print(f"✅ Master Bot Online!")
+        print(f"📌 Send /start to access admin panel")
+        print("=" * 50)
+        
+        while True:
+            try:
+                master_bot.infinity_polling(timeout=60, skip_pending=True)
+            except Exception as e:
+                print(f"❌ Error: {e}")
+                time.sleep(5)
