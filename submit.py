@@ -1778,32 +1778,59 @@ def m_download_type_callback(c):
     total_rows = 0
     rows_with_cookies = 0
     
-    with open(data_file, "w", newline="", encoding="utf-8") as f:
-        writer = csv.writer(f)
-        writer.writerow(["user", "pass", "cookies", "2fa", "submitted_by", "submitted_at", "received_date"])
-        
-        for key, item in all_unique_data.items():
-            if "data" in item and isinstance(item["data"], list):
-                for row in item["data"]:
-                    total_rows += 1
-                    user_val = row.get("user", "")
-                    pass_val = row.get("pass", "")
-                    cookies_val = row.get("cookies", "")
-                    twofa_val = row.get("2fa", "")
-                    received_date = item.get("received_date", "Unknown")
-                    
-                    if cookies_val:
-                        rows_with_cookies += 1
-                    
-                    writer.writerow([
-                        user_val if user_val else "",
-                        pass_val if pass_val else "",
-                        cookies_val if cookies_val else "",
-                        twofa_val if twofa_val else "",
-                        item.get("submitted_by", ""),
-                        item.get("submitted_at", ""),
-                        received_date
-                    ])
+    # 🔥 Facebook 0FD Cookies এর জন্য আলাদা ফরম্যাট
+    if file_type == "fb_0fd_2fa":
+        with open(data_file, "w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            # 🔥 আপনার চাওয়া ফরম্যাট: uid, pass, cookies, submitted_by, submitted_at, received_date
+            writer.writerow(["uid", "pass", "cookies", "submitted_by", "submitted_at", "received_date"])
+            
+            for key, item in all_unique_data.items():
+                if "data" in item and isinstance(item["data"], list):
+                    for row in item["data"]:
+                        total_rows += 1
+                        uid_val = row.get("user", "")
+                        pass_val = row.get("pass", "")
+                        cookies_val = row.get("cookies", "")
+                        received_date = item.get("received_date", "Unknown")
+                        
+                        if cookies_val:
+                            rows_with_cookies += 1
+                        
+                        writer.writerow([
+                            uid_val if uid_val else "",
+                            pass_val if pass_val else "",
+                            cookies_val if cookies_val else "",
+                            item.get("submitted_by", ""),
+                            item.get("submitted_at", ""),
+                            received_date
+                        ])
+    else:
+        # Instagram এর জন্য পুরানো ফরম্যাট
+        with open(data_file, "w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerow(["user", "pass", "2fa", "submitted_by", "submitted_at", "received_date"])
+            
+            for key, item in all_unique_data.items():
+                if "data" in item and isinstance(item["data"], list):
+                    for row in item["data"]:
+                        total_rows += 1
+                        user_val = row.get("user", "")
+                        pass_val = row.get("pass", "")
+                        twofa_val = row.get("2fa", "")
+                        received_date = item.get("received_date", "Unknown")
+                        
+                        if twofa_val:
+                            rows_with_cookies += 1
+                        
+                        writer.writerow([
+                            user_val if user_val else "",
+                            pass_val if pass_val else "",
+                            twofa_val if twofa_val else "",
+                            item.get("submitted_by", ""),
+                            item.get("submitted_at", ""),
+                            received_date
+                        ])
     
     try:
         master_bot.delete_message(c.message.chat.id, status_msg.message_id)
@@ -1814,7 +1841,10 @@ def m_download_type_callback(c):
         master_bot.send_document(
             c.message.chat.id, 
             f, 
-            caption=f"📊 {display_type}\n📅 Date: {current_date}\nTotal rows: {total_rows}\nRows with Cookies: {rows_with_cookies}"
+            caption=f"""📊 {display_type}
+📅 Date: {current_date}
+Total rows: {total_rows}
+Rows with Cookies: {rows_with_cookies}"""
         )
     
     os.remove(data_file)
