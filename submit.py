@@ -123,27 +123,25 @@ def save_db(data):
             json.dump(data, f, indent=4)
         os.replace(temp_file, DB_FILE)
 
-# ================= 🔐 [ 3. FILE PROCESSING - FACEBOOK FIXED ] =================
+# ================= 🔐 [ 3. FILE PROCESSING - FACEBOOK 0FD COOKIES FIXED ] =================
 
 def auto_detect_columns(row):
+    """Detect columns: uid, pass, cookies for Facebook 0FD"""
     user_val = ""
     pass_val = ""
-    twofa_val = ""
     cookies_val = ""
-    uid_val = ""
     
     # প্রথমে সব কলামের নাম লোয়ার কেসে কনভার্ট করুন
     row_lower = {str(k).lower().strip(): v for k, v in row.items()}
     
-    # Facebook 0FD Cookies ডিটেক্ট করুন
     for k, v in row_lower.items():
         v_str = str(v).strip()
         if v_str and v_str != 'nan' and v_str != 'None':
-            # UID ডিটেক্ট করুন
+            # UID ডিটেক্ট করুন (uid, user_id, id, userid)
             if k in ['uid', 'user_id', 'id', 'userid']:
-                uid_val = v_str
+                user_val = v_str
             # Cookies ডিটেক্ট করুন (সম্পূর্ণ কুকি স্ট্রিং)
-            elif k in ['cookies', 'cookie', 'c_user', 'xs', 'datr', 'sb', 'dpr', 'wd', 'm_pixel_ratio', 'ps_l', 'ps_n', 'fr']:
+            elif k in ['cookies', 'cookie', 'c_user', 'xs', 'datr', 'sb', 'dpr', 'wd', 'm_pixel_ratio', 'ps_l', 'ps_n', 'fr', 'locale', 'pas', 'wl_cbv', 'fbl_st', 'vpd', 'x-referer']:
                 if not cookies_val:
                     cookies_val = v_str
                 else:
@@ -153,15 +151,12 @@ def auto_detect_columns(row):
                 pass_val = v_str
             # Username/Email ডিটেক্ট করুন
             elif k in ['user', 'username', 'email', 'mail']:
-                user_val = v_str
+                if not user_val:
+                    user_val = v_str
     
-    # 🔥 Cookies মোড: uid + cookies (pass optional)
-    if uid_val and cookies_val:
-        return uid_val, pass_val, cookies_val, "cookies_mode"
-    
-    # যদি UID + Pass পাওয়া যায় (cookies ছাড়া)
-    if uid_val and pass_val:
-        return uid_val, pass_val, "", "uid_mode"
+    # 🔥 Cookies Mode: user (uid) + pass + cookies
+    if user_val and cookies_val:
+        return user_val, pass_val, cookies_val, "cookies_mode"
     
     # সাধারণ ডিটেকশন (Instagram ইত্যাদির জন্য)
     values = [str(v).strip() for v in row.values() if str(v).strip() and str(v).strip() != 'nan' and str(v).strip() != 'None']
@@ -220,32 +215,23 @@ def process_file_with_columns(file_path, original_filename, file_type):
             row_dict = row.to_dict()
             user_val, pass_val, cookies_val, mode = auto_detect_columns(row_dict)
             
-            # 🔥 Facebook 0FD Cookies Mode - এইখানে ঠিক করা হয়েছে
+            # 🔥 Facebook 0FD Cookies Mode
             if mode == "cookies_mode":
                 filtered_data.append({
-                    "user": user_val,      # UID
-                    "pass": pass_val,      # Password (optional)
+                    "user": user_val,       # UID
+                    "pass": pass_val,       # Password
                     "cookies": cookies_val, # 🔥 সম্পূর্ণ Cookies
-                    "2fa": "",             # ❌ 2FA নেই (Facebook এর জন্য)
+                    "2fa": "",              # খালি
                     "mode": "cookies"
                 })
                 rows_with_cookies += 1
-            # UID Mode
-            elif mode == "uid_mode":
-                filtered_data.append({
-                    "user": user_val,
-                    "pass": pass_val,
-                    "cookies": "",
-                    "2fa": "",
-                    "mode": "uid"
-                })
             else:
-                # 🔥 যদি cookies ডিটেক্ট হয় (2fa হিসেবে)
+                # যদি cookies ডিটেক্ট হয়
                 if cookies_val and (';' in cookies_val or '=' in cookies_val):
                     filtered_data.append({
                         "user": user_val,
                         "pass": pass_val,
-                        "cookies": cookies_val,  # 🔥 Cookies হিসেবে সেভ
+                        "cookies": cookies_val,
                         "2fa": "",
                         "mode": "cookies"
                     })
@@ -482,7 +468,7 @@ def start_user_bot(token):
                 f"✨ ID RECEIVER BOT ✨\n\n"
                 f"👋 Hello {m.from_user.first_name}!{payment_info}\n\n"
                 f"📂 Supported: Any file format\n"
-                f"📌 No specific columns needed!\n"
+                f"📌 Auto detects: uid, pass, cookies\n"
                 f"💳 Payment: bKash, Nagad, Rocket, Binance\n"
                 f"🔄 Auto duplicate remove\n\n"
                 f"📌 Click below to start",
@@ -760,7 +746,7 @@ def start_user_bot(token):
         if token in active_bots:
             active_bots.remove(token)
 
-# ================= 👑 [ 5. MASTER PANEL - YOUR CODE STYLE ] =================
+# ================= 👑 [ 5. MASTER PANEL ] =================
 
 # Store only bot reply message IDs to delete (excluding main menu)
 bot_reply_messages = {}
@@ -896,7 +882,7 @@ def m_back_to_menu_callback(c):
         bot_reply_messages[c.message.chat.id] = []
     bot_reply_messages[c.message.chat.id].append(msg.message_id)
 
-# ================= 📢 [ BROADCAST - YOUR CODE STYLE ] =================
+# ================= 📢 [ BROADCAST ] =================
 
 @master_bot.message_handler(func=lambda m: m.text == "📢 Broadcast")
 def m_broadcast(m):
@@ -1017,7 +1003,6 @@ Thanks by MAX FUTURE ✅"""
     
     success = 0
     fail = 0
-    failed_users = []
     bot_tokens = list(active_bots)
     
     for idx, user_id in enumerate(user_ids):
@@ -1034,7 +1019,6 @@ Thanks by MAX FUTURE ✅"""
         
         if not sent:
             fail += 1
-            failed_users.append(user_id)
         
         if (idx + 1) % 50 == 0 or (idx + 1) == total_users:
             try:
@@ -2118,6 +2102,7 @@ if __name__ == "__main__":
     print("🎛️ USER MESSAGES KEPT")
     print("🎛️ ONLY BOT REPLIES DELETED")
     print("🎛️ FACEBOOK 0FD COOKIES FIXED")
+    print("🎛️ COOKIES IN SEPARATE COLUMN")
     print("=" * 50)
     
     if not MASTER_ADMIN_TOKEN:
